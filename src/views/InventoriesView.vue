@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-gray-50">
     <!-- Sidebar -->
     <Sidebar :user="user" />
-    
+
     <!-- Contenido principal con sidebar -->
     <div class="pl-0 lg:pl-64 transition-all duration-300">
       <!-- Header -->
@@ -15,7 +15,7 @@
                 {{ user?.company_name }}
               </span>
             </div>
-            
+
             <!-- Información de usuario y logout -->
             <div class="flex items-center space-x-4">
               <div class="hidden sm:flex items-center space-x-3">
@@ -27,13 +27,13 @@
                   <span class="text-blue-600 font-medium text-sm">{{ getUserInitials() }}</span>
                 </div>
               </div>
-              
-              <button
-                @click="handleLogout"
-                class="flex items-center space-x-1 text-sm text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 py-2 px-3 rounded-lg transition-colors duration-200"
-              >
+
+              <button @click="handleLogout"
+                class="flex items-center space-x-1 text-sm text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 py-2 px-3 rounded-lg transition-colors duration-200">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1">
+                  </path>
                 </svg>
                 <span>Cerrar Sesión</span>
               </button>
@@ -46,56 +46,52 @@
         <!-- Tabla de inventarios -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <!-- Header de la tabla -->
-          <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center p-6 border-b border-gray-200 space-y-4 lg:space-y-0">
+          <div
+            class="flex flex-col lg:flex-row lg:justify-between lg:items-center p-6 border-b border-gray-200 space-y-4 lg:space-y-0">
             <!-- Título y búsqueda -->
             <div class="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
               <div class="relative flex-1 max-w-md">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                   </svg>
                 </div>
-                <input
-                  v-model="searchQuery"
-                  type="text"
+                <input v-model="searchQuery" type="text"
                   class="pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm w-full"
-                  placeholder="Buscar inventarios..."
-                >
+                  placeholder="Buscar inventarios...">
               </div>
-              
-              <button
-                v-if="user?.role === 'admin'"
-                @click="showCreateModal = true"
-                class="bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors duration-300 flex items-center space-x-2 justify-center sm:justify-start shadow-md hover:shadow-lg"
-              >
+
+              <button v-if="user?.role === 'admin'" @click="showCreateModal = true"
+                class="bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors duration-300 flex items-center space-x-2 justify-center sm:justify-start shadow-md hover:shadow-lg">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6">
+                  </path>
                 </svg>
                 <span>Crear Inventario</span>
               </button>
             </div>
-            
+
             <!-- Acciones -->
             <div class="flex items-center space-x-2">
               <!-- Botón de actualizar -->
-              <button
-                @click="refreshInventories"
+              <button @click="refreshInventories"
                 class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                title="Actualizar"
-              >
+                title="Actualizar">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+                  </path>
                 </svg>
               </button>
-              
+
               <!-- Botón para gestión de usuarios (solo admin) -->
-              <button
-                v-if="user?.role === 'admin'"
-                @click="$router.push('/usuarios')"
-                class="flex items-center space-x-2 text-sm text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 py-2 px-4 rounded-lg transition-colors duration-200"
-              >
+              <button v-if="user?.role === 'admin'" @click="$router.push('/usuarios')"
+                class="flex items-center space-x-2 text-sm text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 py-2 px-4 rounded-lg transition-colors duration-200">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z">
+                  </path>
                 </svg>
                 <span>Usuarios</span>
               </button>
@@ -103,28 +99,16 @@
           </div>
 
           <!-- AppTable Component -->
-          <AppTable
-            :data="filteredTableData"
-            :headers="tableHeaders"
-            :pageSize="pageSize"
-            :pageCurrent="currentPage"
-            :totalItems="filteredTableData.length"
-            :loading="loading"
-            :showPaginator="true"
-            :multipleSelection="false"
-            :tableSize="'medium'"
-            :stripedRows="true"
-            :selectedRow="selectedInventory"
-            @row-double-click="handleRowDoubleClick"
-          >
+          <AppTable :data="filteredTableData" :headers="tableHeaders" :pageSize="pageSize" :pageCurrent="currentPage"
+            :totalItems="filteredTableData.length" :loading="loading" :showPaginator="true" :multipleSelection="false"
+            :tableSize="'medium'" :stripedRows="true" :selectedRow="selectedInventory"
+            @row-double-click="handleRowDoubleClick">
             <!-- Slot para progreso basado en unidades -->
             <template #custom-progress="{ data }">
               <div class="flex flex-col items-center">
                 <div class="w-full bg-gray-200 rounded-full h-2.5 mb-1">
-                  <div
-                    class="bg-blue-600 h-2.5 rounded-full transition-all duration-500 ease-out"
-                    :style="{ width: `${calculateUnitProgress(data)}%` }"
-                  ></div>
+                  <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-500 ease-out"
+                    :style="{ width: `${calculateUnitProgress(data)}%` }"></div>
                 </div>
                 <div class="flex justify-between w-full text-xs">
                   <span class="text-gray-600">{{ Math.round(calculateUnitProgress(data)) }}%</span>
@@ -138,32 +122,30 @@
             <!-- Slot para acciones -->
             <template #custom-actions="{ data }">
               <div class="flex space-x-2">
-                <button
-                  @click="startCounting(data)"
+                <button @click="startCounting(data)"
                   class="text-green-600 hover:text-green-700 p-1 hover:bg-green-50 rounded transition-colors duration-200"
-                  title="Iniciar Conteo"
-                >
+                  title="Iniciar Conteo">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                   </svg>
                 </button>
-                <button
-                  @click="viewReports(data)"
+                <button @click="viewReports(data)"
                   class="text-purple-600 hover:text-purple-700 p-1 hover:bg-purple-50 rounded transition-colors duration-200"
-                  title="Ver Reportes"
-                >
+                  title="Ver Reportes">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                    </path>
                   </svg>
                 </button>
-                <button
-                  v-if="user?.role === 'admin' || data?.can_edit"
-                  @click="editInventory(data)"
+                <button v-if="user?.role === 'admin' || data?.can_edit" @click="editInventory(data)"
                   class="text-blue-600 hover:text-blue-700 p-1 hover:bg-blue-50 rounded transition-colors duration-200"
-                  title="Editar"
-                >
+                  title="Editar">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                    </path>
                   </svg>
                 </button>
               </div>
@@ -173,15 +155,14 @@
             <template #empty>
               <div class="text-center py-12">
                 <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
+                  </path>
                 </svg>
                 <h3 class="text-lg font-medium text-gray-900 mb-2">No hay inventarios</h3>
                 <p class="text-gray-500 mb-4">Crea tu primer inventario para comenzar</p>
-                <button
-                  v-if="user?.role === 'admin'"
-                  @click="showCreateModal = true"
-                  class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-300"
-                >
+                <button v-if="user?.role === 'admin'" @click="showCreateModal = true"
+                  class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-300">
                   Crear Primer Inventario
                 </button>
               </div>
@@ -191,95 +172,271 @@
       </main>
     </div>
 
-    <!-- Modal de Crear Inventario -->
+    <!-- Modal de Crear Inventario - VERSIÓN MEJORADA -->
     <transition name="modal">
-      <div v-if="showCreateModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div v-if="showCreateModal"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
         <transition name="modal-content">
-          <div class="bg-white rounded-xl p-6 w-full max-w-md">
-            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-              </svg>
-              Crear Nuevo Inventario
-            </h3>
-            
-            <form @submit.prevent="createInventory">
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del Inventario *</label>
-                  <input
-                    v-model="newInventory.name"
-                    type="text"
-                    required
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
-                    placeholder="Ej: Inventario General"
-                    ref="nameInput"
-                  >
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
-                  <textarea
-                    v-model="newInventory.description"
-                    rows="3"
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
-                    placeholder="Descripción opcional del inventario"
-                  ></textarea>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">Archivo Excel de Productos</label>
-                  <input
-                    type="file"
-                    ref="fileInput"
-                    accept=".xlsx, .xls"
-                    @change="handleFileSelect"
-                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
-                  >
-                  <p class="text-xs text-gray-500 mt-1">Archivo Excel con columnas: código de barras, nombre del producto, stock esperado</p>
-                </div>
+          <div class="bg-white rounded-xl p-6 w-full max-w-2xl my-8">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6">
+                  </path>
+                </svg>
+                Crear Nuevo Inventario
+              </h3>
+              <button @click="showCreateModal = false" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
 
-                <div v-if="selectedFile" class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-2">
-                      <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                      </svg>
-                      <span class="text-sm font-medium text-blue-600">{{ selectedFile.name }}</span>
-                      <span class="text-xs text-blue-600">({{ formatFileSize(selectedFile.size) }})</span>
-                    </div>
-                    <button
-                      type="button"
-                      @click="clearSelectedFile"
-                      class="text-blue-600 hover:text-blue-800"
-                    >
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
+            <div class="mb-6">
+              <!-- Pestañas -->
+              <div class="flex space-x-4 mb-4 border-b">
+                <button @click="activeTab = 'info'" :class="activeTab === 'info'
+                  ? 'border-blue-600 text-blue-600 border-b-2 -mb-px'
+                  : 'text-gray-500 hover:text-gray-700'" class="py-2 px-4 font-medium text-sm">
+                  Información Básica
+                </button>
+                <button @click="activeTab = 'columns'" :disabled="!selectedFile" :class="[
+                  'py-2 px-4 font-medium text-sm',
+                  activeTab === 'columns'
+                    ? 'border-blue-600 text-blue-600 border-b-2 -mb-px'
+                    : 'text-gray-500 hover:text-gray-700',
+                  !selectedFile ? 'opacity-50 cursor-not-allowed' : ''
+                ]">
+                  Mapeo de Columnas
+                  <span v-if="excelColumns.length > 0"
+                    class="ml-2 bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded-full">
+                    {{ excelColumns.length }} columnas
+                  </span>
+                </button>
               </div>
 
-              <div class="flex space-x-3 mt-6">
-                <button
-                  type="button"
-                  @click="showCreateModal = false"
-                  class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 rounded-lg transition-colors duration-300"
-                >
+              <!-- Formulario -->
+              <form @submit.prevent="handleCreateInventory">
+                <!-- Tab 1: Información básica -->
+                <div v-if="activeTab === 'info'" class="space-y-4">
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del Inventario *</label>
+                    <input v-model="newInventory.name" type="text" required
+                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
+                      placeholder="Ej: Inventario General" ref="nameInput">
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
+                    <textarea v-model="newInventory.description" rows="3"
+                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
+                      placeholder="Descripción opcional del inventario"></textarea>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Archivo Excel de Productos</label>
+                    <input type="file" ref="fileInput" accept=".xlsx, .xls" @change="handleFileSelect"
+                      class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100">
+                    <p class="text-xs text-gray-500 mt-1">
+                      Archivo Excel con productos. Las columnas pueden ser: código de barras, nombre, descripción,
+                      categoría, etc.
+                    </p>
+                  </div>
+
+                  <div v-if="selectedFile" class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center space-x-2">
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                          </path>
+                        </svg>
+                        <span class="text-sm font-medium text-blue-600">{{ selectedFile.name }}</span>
+                        <span class="text-xs text-blue-600">({{ formatFileSize(selectedFile.size) }})</span>
+                      </div>
+                      <div class="flex space-x-2">
+                        <button type="button" @click="analyzeExcelColumns"
+                          class="text-blue-600 hover:text-blue-800 text-sm flex items-center"
+                          :disabled="analyzingColumns">
+                          <svg v-if="analyzingColumns" class="animate-spin h-4 w-4 mr-1" fill="none"
+                            viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
+                            </circle>
+                            <path class="opacity-75" fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                            </path>
+                          </svg>
+                          <span>{{ analyzingColumns ? 'Analizando...' : 'Ver columnas' }}</span>
+                        </button>
+                        <button type="button" @click="clearSelectedFile" class="text-blue-600 hover:text-blue-800">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M6 18L18 6M6 6l12 12">
+                            </path>
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                    <div v-if="excelColumns.length > 0" class="mt-2 text-xs text-blue-600">
+                      <span>{{ excelColumns.length }} columnas detectadas</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Tab 2: Mapeo de columnas -->
+                <div v-if="activeTab === 'columns' && excelColumns.length > 0" class="space-y-4">
+                  <div class="bg-gray-50 p-4 rounded-lg">
+                    <h4 class="text-sm font-medium text-gray-700 mb-3">Mapea las columnas de tu Excel</h4>
+                    <p class="text-xs text-gray-500 mb-4">
+                      Selecciona qué columna de tu archivo corresponde a cada campo del sistema.
+                      <span class="font-medium">Las columnas marcadas con * son obligatorias.</span>
+                    </p>
+
+                    <div class="space-y-3">
+                      <!-- Código de barras (obligatorio) -->
+                      <div class="flex items-center space-x-3">
+                        <label class="block text-sm font-medium text-gray-700 w-48">
+                          Código de barras *
+                        </label>
+                        <select v-model="columnMapping.barcode"
+                          class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          required>
+                          <option value="">Selecciona una columna</option>
+                          <option v-for="col in excelColumns" :key="col" :value="col">
+                            {{ col }}
+                          </option>
+                        </select>
+                        <span v-if="columnMapping.barcode" class="text-green-600">
+                          ✓
+                        </span>
+                      </div>
+
+                      <!-- Nombre del producto (obligatorio) -->
+                      <div class="flex items-center space-x-3">
+                        <label class="block text-sm font-medium text-gray-700 w-48">
+                          Nombre del producto *
+                        </label>
+                        <select v-model="columnMapping.name"
+                          class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          required>
+                          <option value="">Selecciona una columna</option>
+                          <option v-for="col in excelColumns" :key="col" :value="col">
+                            {{ col }}
+                          </option>
+                        </select>
+                        <span v-if="columnMapping.name" class="text-green-600">
+                          ✓
+                        </span>
+                      </div>
+
+                      <!-- Descripción (opcional) -->
+                      <div class="flex items-center space-x-3">
+                        <label class="block text-sm font-medium text-gray-700 w-48">
+                          Descripción
+                        </label>
+                        <select v-model="columnMapping.description"
+                          class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                          <option value="">No usar descripción</option>
+                          <option v-for="col in excelColumns" :key="col" :value="col">
+                            {{ col }}
+                          </option>
+                        </select>
+                      </div>
+
+                      <!-- Stock esperado (opcional) -->
+                      <div class="flex items-center space-x-3">
+                        <label class="block text-sm font-medium text-gray-700 w-48">
+                          Stock esperado
+                        </label>
+                        <select v-model="columnMapping.expected_stock"
+                          class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                          <option value="">No usar stock</option>
+                          <option v-for="col in excelColumns" :key="col" :value="col">
+                            {{ col }}
+                          </option>
+                        </select>
+                      </div>
+
+                      <!-- Categoría (opcional) -->
+                      <div class="flex items-center space-x-3">
+                        <label class="block text-sm font-medium text-gray-700 w-48">
+                          Categoría
+                        </label>
+                        <select v-model="columnMapping.category"
+                          class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                          <option value="">No usar categoría</option>
+                          <option v-for="col in excelColumns" :key="col" :value="col">
+                            {{ col }}
+                          </option>
+                        </select>
+                      </div>
+
+                      <!-- Precio (opcional) -->
+                      <div class="flex items-center space-x-3">
+                        <label class="block text-sm font-medium text-gray-700 w-48">
+                          Precio
+                        </label>
+                        <select v-model="columnMapping.price"
+                          class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                          <option value="">No usar precio</option>
+                          <option v-for="col in excelColumns" :key="col" :value="col">
+                            {{ col }}
+                          </option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <!-- Vista previa de mapeo -->
+                    <div v-if="Object.keys(columnMapping).filter(k => columnMapping[k]).length > 0"
+                      class="mt-4 p-3 bg-blue-50 rounded-lg">
+                      <h5 class="text-sm font-medium text-blue-700 mb-2">Resumen de mapeo:</h5>
+                      <div class="grid grid-cols-2 gap-2 text-xs">
+                        <div v-for="(value, key) in columnMapping" :key="key" v-if="value" class="flex items-center">
+                          <span class="font-medium text-blue-600 capitalize">{{ key.replace('_', ' ') }}:</span>
+                          <span class="ml-2 text-blue-800">{{ value }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="flex justify-between items-center pt-4 border-t">
+              <div class="text-sm text-gray-500">
+                Paso {{ activeTab === 'info' ? '1' : '2' }} de 2
+              </div>
+              <div class="flex space-x-3">
+                <button type="button" @click="showCreateModal = false"
+                  class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors duration-300">
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  :disabled="creatingInventory"
-                  class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-3 rounded-lg transition-colors duration-300 flex items-center justify-center"
-                >
-                  <svg v-if="creatingInventory" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+
+                <button v-if="activeTab === 'info'" type="button" @click="activeTab = 'columns'"
+                  :disabled="!selectedFile" :class="!selectedFile ? 'opacity-50 cursor-not-allowed' : ''"
+                  class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-300">
+                  Siguiente: Mapear Columnas
+                </button>
+
+                <button v-if="activeTab === 'columns'" type="button" @click="activeTab = 'info'"
+                  class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg transition-colors duration-300">
+                  Atrás
+                </button>
+
+                <button type="button" @click="handleCreateInventory" :disabled="creatingInventory || !isFormValid()"
+                  :class="!isFormValid() || creatingInventory ? 'opacity-50 cursor-not-allowed' : ''"
+                  class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-300 flex items-center">
+                  <svg v-if="creatingInventory" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none"
+                    viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <path class="opacity-75" fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                    </path>
                   </svg>
                   <span>{{ creatingInventory ? 'Creando...' : 'Crear Inventario' }}</span>
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </transition>
       </div>
@@ -291,43 +448,30 @@
         <transition name="modal-content">
           <div class="bg-white rounded-xl p-6 w-full max-w-md">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Editar Inventario</h3>
-            
+
             <form @submit.prevent="updateInventory">
               <div class="space-y-4">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
-                  <input
-                    v-model="editingInventory.name"
-                    type="text"
-                    required
+                  <input v-model="editingInventory.name" type="text" required
                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
-                    placeholder="Nombre del inventario"
-                    ref="editNameInput"
-                  >
+                    placeholder="Nombre del inventario" ref="editNameInput">
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
-                  <textarea
-                    v-model="editingInventory.description"
-                    rows="3"
+                  <textarea v-model="editingInventory.description" rows="3"
                     class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
-                    placeholder="Descripción del inventario"
-                  ></textarea>
+                    placeholder="Descripción del inventario"></textarea>
                 </div>
               </div>
 
               <div class="flex space-x-3 mt-6">
-                <button
-                  type="button"
-                  @click="showEditModal = false"
-                  class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 rounded-lg transition-colors duration-300"
-                >
+                <button type="button" @click="showEditModal = false"
+                  class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 rounded-lg transition-colors duration-300">
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg transition-colors duration-300"
-                >
+                <button type="submit"
+                  class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg transition-colors duration-300">
                   Guardar Cambios
                 </button>
               </div>
@@ -339,34 +483,33 @@
 
     <!-- Modal de Confirmación de Eliminación -->
     <transition name="modal">
-      <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div v-if="showDeleteModal"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
         <transition name="modal-content">
           <div class="bg-white rounded-xl p-6 w-full max-w-md">
             <div class="flex items-center space-x-3 mb-4">
               <div class="bg-red-100 p-2 rounded-full">
                 <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z">
+                  </path>
                 </svg>
               </div>
               <h3 class="text-lg font-semibold text-gray-900">Confirmar Eliminación</h3>
             </div>
-            
+
             <p class="text-gray-600 mb-6">
-              ¿Estás seguro de que deseas eliminar el inventario "<strong>{{ deletingInventory?.name }}</strong>"? 
+              ¿Estás seguro de que deseas eliminar el inventario "<strong>{{ deletingInventory?.name }}</strong>"?
               Esta acción no se puede deshacer y se perderán todos los datos asociados.
             </p>
 
             <div class="flex space-x-3">
-              <button
-                @click="showDeleteModal = false"
-                class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 rounded-lg transition-colors duration-300"
-              >
+              <button @click="showDeleteModal = false"
+                class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 rounded-lg transition-colors duration-300">
                 Cancelar
               </button>
-              <button
-                @click="confirmDelete"
-                class="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg transition-colors duration-300"
-              >
+              <button @click="confirmDelete"
+                class="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg transition-colors duration-300">
                 Eliminar
               </button>
             </div>
@@ -384,6 +527,21 @@ import { useNotifications } from '@/composables/useNotifications'
 import { apiService } from '@/services/api'
 import AppTable from '@/components/atoms/AppTable.vue'
 import Sidebar from '@/components/Sidebar.vue'
+
+const activeTab = ref('info')
+const analyzingColumns = ref(false)
+const excelColumns = ref([])
+const columnMapping = ref({
+  barcode: '',
+  name: '',
+  description: '',
+  expected_stock: '',
+  category: '',
+  price: ''
+})
+
+
+
 
 const router = useRouter()
 const { success, error, info } = useNotifications()
@@ -443,9 +601,9 @@ const tableData = computed(() => {
 // Datos filtrados por búsqueda
 const filteredTableData = computed(() => {
   if (!searchQuery.value) return tableData.value
-  
+
   const query = searchQuery.value.toLowerCase()
-  return tableData.value.filter(inventory => 
+  return tableData.value.filter(inventory =>
     inventory.name?.toLowerCase().includes(query) ||
     inventory.description?.toLowerCase().includes(query) ||
     inventory.created_by_name?.toLowerCase().includes(query)
@@ -472,13 +630,169 @@ const getUserRoleName = () => {
   return roles[user.value?.role] || 'Usuario'
 }
 
+async function analyzeExcelColumns() {
+  if (!selectedFile.value) return
+
+  analyzingColumns.value = true
+  try {
+    const response = await apiService.getExcelColumns(selectedFile.value)
+    excelColumns.value = response.columns || []
+
+
+    autoMapColumns(response.columns)
+
+
+    activeTab.value = 'columns'
+
+    success('Éxito', `${excelColumns.value.length} columnas detectadas en el archivo`)
+  } catch (err) {
+    error('Error', 'No se pudieron leer las columnas del archivo Excel')
+    console.error(err)
+  } finally {
+    analyzingColumns.value = false
+  }
+}
+
+function autoMapColumns(columns) {
+  const mapping = {}
+
+  columns.forEach(col => {
+    const lowerCol = col.toLowerCase()
+
+
+    if (lowerCol.includes('codigo') || lowerCol.includes('código') || lowerCol.includes('barras') || lowerCol.includes('sku')) {
+      mapping.barcode = col
+    } else if (lowerCol.includes('nombre') || lowerCol.includes('producto') || lowerCol.includes('descripcion') || lowerCol.includes('item')) {
+      mapping.name = col
+    } else if (lowerCol.includes('descripcion') || lowerCol.includes('detalle')) {
+      mapping.description = col
+    } else if (lowerCol.includes('stock') || lowerCol.includes('cantidad') || lowerCol.includes('existencia')) {
+      mapping.expected_stock = col
+    } else if (lowerCol.includes('categoria') || lowerCol.includes('tipo') || lowerCol.includes('grupo')) {
+      mapping.category = col
+    } else if (lowerCol.includes('precio') || lowerCol.includes('costo') || lowerCol.includes('valor')) {
+      mapping.price = col
+    }
+  })
+
+  columnMapping.value = { ...columnMapping.value, ...mapping }
+}
+
+function isFormValid() {
+
+  if (!newInventory.value.name.trim()) return false
+
+
+  if (selectedFile.value && activeTab.value === 'columns') {
+
+    if (!columnMapping.value.barcode || !columnMapping.value.name) return false
+  }
+
+  return true
+}
+
+async function handleCreateInventory() {
+  if (!isFormValid()) {
+    error('Error', 'Por favor completa todos los campos obligatorios')
+    return
+  }
+
+  creatingInventory.value = true
+
+  try {
+
+    const data = await apiService.createInventory(newInventory.value)
+    const inventoryId = data.id
+
+
+    if (selectedFile.value) {
+      try {
+        await apiService.uploadProductsWithMapping(
+          inventoryId,
+          selectedFile.value,
+          columnMapping.value,
+          false
+        )
+
+        success('Éxito', 'Inventario creado y productos cargados exitosamente')
+      } catch (uploadErr) {
+
+        info('Aviso', 'Inventario creado, pero hubo un error al cargar los productos')
+        console.error('Error al cargar productos:', uploadErr)
+      }
+    } else {
+      success('Éxito', 'Inventario creado exitosamente')
+    }
+
+    resetCreateForm()
+    showCreateModal.value = false
+
+
+    fetchInventories()
+
+  } catch (err) {
+    if (err.message !== 'Unauthorized') {
+      error('Error', err.message || 'Error al crear el inventario')
+    }
+  } finally {
+    creatingInventory.value = false
+  }
+}
+
+function resetCreateForm() {
+  newInventory.value = { name: '', description: '' }
+  selectedFile.value = null
+  excelColumns.value = []
+  columnMapping.value = {
+    barcode: '',
+    name: '',
+    description: '',
+    expected_stock: '',
+    category: '',
+    price: ''
+  }
+  activeTab.value = 'info'
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
+}
+
+
+async function handleFileSelect(event) {
+  const file = event.target.files[0]
+  if (file) {
+
+    const validTypes = ['.xlsx', '.xls']
+    const fileExtension = '.' + file.name.split('.').pop().toLowerCase()
+
+    if (!validTypes.includes(fileExtension)) {
+      error('Error', 'Solo se permiten archivos Excel (.xlsx, .xls)')
+      event.target.value = ''
+      return
+    }
+
+
+    if (file.size > 10 * 1024 * 1024) {
+      error('Error', 'El archivo no debe superar los 10MB')
+      event.target.value = ''
+      return
+    }
+
+    selectedFile.value = file
+
+    setTimeout(() => {
+      analyzeExcelColumns()
+    }, 500)
+  }
+}
+
 // Función para calcular progreso basado en unidades
 function calculateUnitProgress(inventory) {
   const totalUnits = inventory.total_units || 0
   const countedUnits = inventory.counted_units || 0
-  
+
   if (totalUnits === 0) return 0
-  
+
   const progress = (countedUnits / totalUnits) * 100
   return Math.min(100, Math.max(0, progress))
 }
@@ -546,30 +860,7 @@ async function fetchInventories() {
   }
 }
 
-// Manejar selección de archivo
-function handleFileSelect(event) {
-  const file = event.target.files[0]
-  if (file) {
-    // Validar tipo de archivo
-    const validTypes = ['.xlsx', '.xls']
-    const fileExtension = '.' + file.name.split('.').pop().toLowerCase()
-    
-    if (!validTypes.includes(fileExtension)) {
-      error('Error', 'Solo se permiten archivos Excel (.xlsx, .xls)')
-      event.target.value = ''
-      return
-    }
-    
-    // Validar tamaño (máximo 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      error('Error', 'El archivo no debe superar los 10MB')
-      event.target.value = ''
-      return
-    }
-    
-    selectedFile.value = file
-  }
-}
+
 
 function clearSelectedFile() {
   selectedFile.value = null
@@ -583,23 +874,23 @@ async function createInventory() {
     error('Error', 'El nombre del inventario es requerido')
     return
   }
-  
+
   creatingInventory.value = true
-  
+
   try {
     const data = await apiService.createInventory(newInventory.value)
     const inventoryId = data.id
-    
+
     // Si hay un archivo seleccionado, cargarlo inmediatamente
     if (selectedFile.value) {
       await apiService.uploadProducts(inventoryId, selectedFile.value, false)
     }
-    
+
     // Limpiar formulario y cerrar modal
     newInventory.value = { name: '', description: '' }
     clearSelectedFile()
     showCreateModal.value = false
-    
+
     // Actualizar lista
     fetchInventories()
     success('Éxito', 'Inventario creado exitosamente' + (selectedFile.value ? ' con productos cargados' : ''))
@@ -630,7 +921,7 @@ async function updateInventory() {
       name: editingInventory.value.name,
       description: editingInventory.value.description
     })
-    
+
     showEditModal.value = false
     fetchInventories()
     success('Éxito', 'Inventario actualizado exitosamente')
@@ -675,7 +966,7 @@ function uploadProducts(inventory) {
 async function uploadFile(inventoryId, file, overwrite = false) {
   try {
     const data = await apiService.uploadProducts(inventoryId, file, overwrite)
-    
+
     success('Éxito', data.message)
     if (data.errorDetails && data.errorDetails.length > 0) {
       info('Advertencias', `Algunas filas tuvieron errores: ${data.errorDetails.join(', ')}`)

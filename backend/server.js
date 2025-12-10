@@ -30,11 +30,9 @@ const dbConfig = {
 
 // Configuración de Multer
 const storage = multer.memoryStorage();
-const upload = multer({ 
+const upload = multer({
     storage: storage,
-    limits: {
-        fileSize: 10 * 1024 * 1024
-    }
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB max
 });
 
 // Middleware de autenticación MEJORADO para superadmin
@@ -49,7 +47,7 @@ const authenticateToken = async (req, res, next) => {
 
         const decoded = jwt.verify(token, 'your-secret-key');
         const connection = await mysql.createConnection(dbConfig);
-        
+
         const [users] = await connection.execute(
             `SELECT u.*, c.name as company_name, c.user_limit 
              FROM users u 
@@ -57,7 +55,7 @@ const authenticateToken = async (req, res, next) => {
              WHERE u.id = ? AND u.is_active = TRUE`,
             [decoded.userId]
         );
-        
+
         connection.end();
 
         if (users.length === 0) {
@@ -85,8 +83,8 @@ const requireSuperAdmin = (req, res, next) => {
 // ==============================================
 
 const EMAIL_CONFIG = {
-  user: 'ingalexisarenas@gmail.com',
-  pass: 'agef ie dd nbqi xnbm'.replace(/\s+/g, '')  // Contraseña SIN espacios
+    user: 'ingalexisarenas@gmail.com',
+    pass: 'agef ie dd nbqi xnbm'.replace(/\s+/g, '')  // Contraseña SIN espacios
 };
 
 console.log('🔐 Configuración de email cargada:');
@@ -94,97 +92,97 @@ console.log('   Usuario:', EMAIL_CONFIG.user);
 console.log('   Contraseña (limpia):', '*'.repeat(EMAIL_CONFIG.pass.length) + ` (${EMAIL_CONFIG.pass.length} caracteres)`);
 
 const createTransporter = () => {
-  try {
-    console.log('🔄 Creando transporte de email REAL...');
-    
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: EMAIL_CONFIG.user,
-        pass: EMAIL_CONFIG.pass
-      },
-      debug: true,
-      logger: false
-    });
+    try {
+        console.log('🔄 Creando transporte de email REAL...');
 
-    // Verificar conexión inmediatamente
-    transporter.verify(function(error, success) {
-      if (error) {
-        console.log('❌ Error verificando conexión con Gmail:', error.message);
-        console.log('💡 Posibles soluciones:');
-        console.log('   1. Verifica que la contraseña sea CORRECTA (sin espacios)');
-        console.log('   2. Asegúrate de usar "Contraseña de aplicación" de Google');
-        console.log('   3. Revisa que la verificación en 2 pasos esté ACTIVADA');
-        console.log('   4. Genera una NUEVA contraseña si es necesario');
-      } else {
-        console.log('✅ ✅ ✅ CONEXIÓN CON GMAIL ESTABLECIDA ✅ ✅ ✅');
-        console.log('📧 Listo para enviar emails REALES');
-      }
-    });
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: EMAIL_CONFIG.user,
+                pass: EMAIL_CONFIG.pass
+            },
+            debug: true,
+            logger: false
+        });
 
-    return transporter;
-    
-  } catch (error) {
-    console.error('❌ Error crítico creando transporter:', error.message);
-    return null;
-  }
+        // Verificar conexión inmediatamente
+        transporter.verify(function (error, success) {
+            if (error) {
+                console.log('❌ Error verificando conexión con Gmail:', error.message);
+                console.log('💡 Posibles soluciones:');
+                console.log('   1. Verifica que la contraseña sea CORRECTA (sin espacios)');
+                console.log('   2. Asegúrate de usar "Contraseña de aplicación" de Google');
+                console.log('   3. Revisa que la verificación en 2 pasos esté ACTIVADA');
+                console.log('   4. Genera una NUEVA contraseña si es necesario');
+            } else {
+                console.log('✅ ✅ ✅ CONEXIÓN CON GMAIL ESTABLECIDA ✅ ✅ ✅');
+                console.log('📧 Listo para enviar emails REALES');
+            }
+        });
+
+        return transporter;
+
+    } catch (error) {
+        console.error('❌ Error crítico creando transporter:', error.message);
+        return null;
+    }
 };
 
 const emailTransporter = createTransporter();
 
 // Función para enviar emails
 const sendEmail = async (mailOptions) => {
-  console.log('\n📧 === INICIANDO ENVÍO DE EMAIL ===');
-  console.log('   Para:', mailOptions.to);
-  console.log('   Asunto:', mailOptions.subject);
-  
-  if (!emailTransporter) {
-    console.log('❌ No hay transporte de email disponible');
-    console.log('📧 === ENVÍO CANCELADO ===\n');
-    return { success: false, error: 'Transporte no disponible' };
-  }
+    console.log('\n📧 === INICIANDO ENVÍO DE EMAIL ===');
+    console.log('   Para:', mailOptions.to);
+    console.log('   Asunto:', mailOptions.subject);
 
-  try {
-    console.log('🚀 Enviando email REAL...');
-    
-    const result = await emailTransporter.sendMail({
-      from: 'Sistema de Inventario <ingalexisarenas@gmail.com>',
-      ...mailOptions
-    });
-    
-    console.log('✅ ✅ ✅ EMAIL REAL ENVIADO EXITOSAMENTE ✅ ✅ ✅');
-    console.log('   ID del mensaje:', result.messageId);
-    console.log('   Respuesta:', result.response);
-    console.log('📧 === EMAIL ENVIADO ===\n');
-    
-    return { 
-      success: true, 
-      messageId: result.messageId,
-      response: result.response,
-      real: true
-    };
-    
-  } catch (error) {
-    console.error('❌ ❌ ❌ ERROR ENVIANDO EMAIL REAL:');
-    console.error('   Código:', error.code);
-    console.error('   Mensaje:', error.message);
-    
-    if (error.code === 'EAUTH') {
-      console.log('\n💡 PROBLEMA DE AUTENTICACIÓN:');
-      console.log('   1. Verifica que usaste CONTRASEÑA DE APLICACIÓN (16 caracteres)');
-      console.log('   2. NO uses tu contraseña normal de Gmail');
-      console.log('   3. Asegúrate de que la verificación en 2 pasos esté ACTIVADA');
-      console.log('   4. Genera una NUEVA contraseña en: https://myaccount.google.com/apppasswords');
+    if (!emailTransporter) {
+        console.log('❌ No hay transporte de email disponible');
+        console.log('📧 === ENVÍO CANCELADO ===\n');
+        return { success: false, error: 'Transporte no disponible' };
     }
-    
-    if (error.code === 'EENVELOPE') {
-      console.log('\n💡 PROBLEMA CON EL DESTINATARIO:');
-      console.log('   Verifica que el email del destinatario sea válido');
+
+    try {
+        console.log('🚀 Enviando email REAL...');
+
+        const result = await emailTransporter.sendMail({
+            from: 'Sistema de Inventario <ingalexisarenas@gmail.com>',
+            ...mailOptions
+        });
+
+        console.log('✅ ✅ ✅ EMAIL REAL ENVIADO EXITOSAMENTE ✅ ✅ ✅');
+        console.log('   ID del mensaje:', result.messageId);
+        console.log('   Respuesta:', result.response);
+        console.log('📧 === EMAIL ENVIADO ===\n');
+
+        return {
+            success: true,
+            messageId: result.messageId,
+            response: result.response,
+            real: true
+        };
+
+    } catch (error) {
+        console.error('❌ ❌ ❌ ERROR ENVIANDO EMAIL REAL:');
+        console.error('   Código:', error.code);
+        console.error('   Mensaje:', error.message);
+
+        if (error.code === 'EAUTH') {
+            console.log('\n💡 PROBLEMA DE AUTENTICACIÓN:');
+            console.log('   1. Verifica que usaste CONTRASEÑA DE APLICACIÓN (16 caracteres)');
+            console.log('   2. NO uses tu contraseña normal de Gmail');
+            console.log('   3. Asegúrate de que la verificación en 2 pasos esté ACTIVADA');
+            console.log('   4. Genera una NUEVA contraseña en: https://myaccount.google.com/apppasswords');
+        }
+
+        if (error.code === 'EENVELOPE') {
+            console.log('\n💡 PROBLEMA CON EL DESTINATARIO:');
+            console.log('   Verifica que el email del destinatario sea válido');
+        }
+
+        console.log('📧 === ERROR EN ENVÍO ===\n');
+        throw error;
     }
-    
-    console.log('📧 === ERROR EN ENVÍO ===\n');
-    throw error;
-  }
 };
 
 // ==============================================
@@ -195,7 +193,7 @@ const sendEmail = async (mailOptions) => {
 app.get('/api/superadmin/companies', authenticateToken, requireSuperAdmin, async (req, res) => {
     try {
         const connection = await mysql.createConnection(dbConfig);
-        
+
         const [companies] = await connection.execute(`
             SELECT 
                 c.*,
@@ -211,7 +209,7 @@ app.get('/api/superadmin/companies', authenticateToken, requireSuperAdmin, async
         `);
 
         connection.end();
-        
+
         res.json(companies);
     } catch (error) {
         console.error('Error getting companies:', error);
@@ -223,7 +221,7 @@ app.get('/api/superadmin/companies', authenticateToken, requireSuperAdmin, async
 app.get('/api/superadmin/stats', authenticateToken, requireSuperAdmin, async (req, res) => {
     try {
         const connection = await mysql.createConnection(dbConfig);
-        
+
         const [stats] = await connection.execute(`
             SELECT 
                 COUNT(DISTINCT c.id) as total_companies,
@@ -255,7 +253,7 @@ app.get('/api/superadmin/stats', authenticateToken, requireSuperAdmin, async (re
         `);
 
         connection.end();
-        
+
         res.json({
             overview: stats[0],
             recentActivity
@@ -271,7 +269,7 @@ app.post('/api/superadmin/companies', authenticateToken, requireSuperAdmin, asyn
     let connection;
     try {
         const { company_name, admin_username, admin_email, admin_full_name, admin_password, user_limit } = req.body;
-        
+
         console.log('🏢 Creando nueva empresa:', { company_name, admin_username });
 
         if (!company_name || !admin_username || !admin_email || !admin_full_name || !admin_password) {
@@ -384,10 +382,10 @@ app.post('/api/superadmin/companies', authenticateToken, requireSuperAdmin, asyn
             }
 
             connection.end();
-            
+
             console.log('✅ Empresa creada exitosamente');
-            
-            res.json({ 
+
+            res.json({
                 success: true,
                 message: 'Empresa y usuario administrador creados exitosamente',
                 company_id: companyId,
@@ -419,7 +417,7 @@ app.get('/api/superadmin/companies/:companyId/users', authenticateToken, require
     try {
         const companyId = req.params.companyId;
         const connection = await mysql.createConnection(dbConfig);
-        
+
         const [users] = await connection.execute(`
             SELECT 
                 u.id, u.username, u.email, u.full_name, u.role, u.is_active, 
@@ -432,7 +430,7 @@ app.get('/api/superadmin/companies/:companyId/users', authenticateToken, require
         `, [companyId]);
 
         connection.end();
-        
+
         res.json(users);
     } catch (error) {
         console.error('Error getting company users:', error);
@@ -445,7 +443,7 @@ app.get('/api/superadmin/companies/:companyId/inventories', authenticateToken, r
     try {
         const companyId = req.params.companyId;
         const connection = await mysql.createConnection(dbConfig);
-        
+
         const [inventories] = await connection.execute(`
             SELECT 
                 i.*, 
@@ -463,7 +461,7 @@ app.get('/api/superadmin/companies/:companyId/inventories', authenticateToken, r
         `, [companyId]);
 
         connection.end();
-        
+
         res.json(inventories);
     } catch (error) {
         console.error('Error getting company inventories:', error);
@@ -475,7 +473,7 @@ app.get('/api/superadmin/companies/:companyId/inventories', authenticateToken, r
 app.get('/api/superadmin/audit-logs', authenticateToken, requireSuperAdmin, async (req, res) => {
     try {
         const connection = await mysql.createConnection(dbConfig);
-        
+
         const [logs] = await connection.execute(`
             (SELECT 
                 'login' as action_type,
@@ -505,7 +503,7 @@ app.get('/api/superadmin/audit-logs', authenticateToken, requireSuperAdmin, asyn
         `);
 
         connection.end();
-        
+
         res.json(logs);
     } catch (error) {
         console.error('Error getting audit logs:', error);
@@ -521,7 +519,7 @@ app.get('/api/superadmin/audit-logs', authenticateToken, requireSuperAdmin, asyn
 app.get('/api/profile', authenticateToken, async (req, res) => {
     try {
         const connection = await mysql.createConnection(dbConfig);
-        
+
         const [users] = await connection.execute(`
             SELECT 
                 u.id, u.username, u.email, u.full_name, u.role, u.company_id,
@@ -549,7 +547,7 @@ app.put('/api/profile', authenticateToken, async (req, res) => {
     let connection;
     try {
         const { full_name, email, current_password, new_password } = req.body;
-        
+
         connection = await mysql.createConnection(dbConfig);
 
         // Verificar contraseña actual si se quiere cambiar la contraseña
@@ -591,8 +589,8 @@ app.put('/api/profile', authenticateToken, async (req, res) => {
 
         await connection.execute(updateQuery, queryParams);
         connection.end();
-        
-        res.json({ 
+
+        res.json({
             success: true,
             message: 'Perfil actualizado exitosamente'
         });
@@ -612,7 +610,7 @@ app.post('/api/register', async (req, res) => {
     let connection;
     try {
         const { company_name, username, email, password, full_name } = req.body;
-        
+
         console.log('📝 Intentando registro:', { company_name, username, email, full_name });
 
         if (!company_name || !username || !email || !password || !full_name) {
@@ -834,12 +832,12 @@ app.post('/api/register', async (req, res) => {
                 company_name: company_name,
                 user_limit: 10
             };
-            
+
             console.log('✅ Registro completado exitosamente');
-            
-            res.json({ 
+
+            res.json({
                 success: true,
-                token, 
+                token,
                 user: userData,
                 message: 'Empresa y usuario administrador creados exitosamente'
             });
@@ -870,7 +868,7 @@ app.post('/api/login', async (req, res) => {
     let connection;
     try {
         const { username, password } = req.body;
-        
+
         console.log('🔐 Login attempt for:', username);
 
         if (!username || !password) {
@@ -895,7 +893,7 @@ app.post('/api/login', async (req, res) => {
 
         const user = users[0];
         const isValidPassword = await bcrypt.compare(password, user.password);
-        
+
         if (!isValidPassword) {
             connection.end();
             console.log('❌ Contraseña incorrecta para:', username);
@@ -918,13 +916,13 @@ app.post('/api/login', async (req, res) => {
             company_name: user.company_name,
             user_limit: user.user_limit
         };
-        
+
         console.log('🎉 Login successful for:', username);
-        
-        res.json({ 
+
+        res.json({
             success: true,
-            token, 
-            user: userData 
+            token,
+            user: userData
         });
     } catch (error) {
         console.error('❌ Login error:', error);
@@ -938,7 +936,7 @@ app.post('/api/login', async (req, res) => {
 app.get('/api/company', authenticateToken, async (req, res) => {
     try {
         const connection = await mysql.createConnection(dbConfig);
-        
+
         const [companies] = await connection.execute(
             `SELECT c.*, COUNT(u.id) as current_users 
              FROM companies c 
@@ -965,7 +963,7 @@ app.get('/api/company', authenticateToken, async (req, res) => {
 app.get('/api/inventories', authenticateToken, async (req, res) => {
     try {
         const connection = await mysql.createConnection(dbConfig);
-        
+
         let query, params;
 
         if (req.user.role === 'admin') {
@@ -1017,10 +1015,10 @@ app.get('/api/inventories', authenticateToken, async (req, res) => {
             `;
             params = [req.user.id, req.user.company_id];
         }
-        
+
         const [inventories] = await connection.execute(query, params);
         connection.end();
-        
+
         console.log(`Found ${inventories.length} inventories for user: ${req.user.id}`);
         res.json(inventories);
     } catch (error) {
@@ -1034,7 +1032,7 @@ app.get('/api/inventories/:id', authenticateToken, async (req, res) => {
     try {
         const inventoryId = req.params.id;
         const connection = await mysql.createConnection(dbConfig);
-        
+
         let query, params;
 
         if (req.user.role === 'admin') {
@@ -1088,13 +1086,13 @@ app.post('/api/inventories', authenticateToken, async (req, res) => {
         );
 
         connection.end();
-        
+
         console.log(`Inventory created with ID: ${result.insertId}`);
-        
-        res.json({ 
+
+        res.json({
             success: true,
-            id: result.insertId, 
-            message: 'Inventario creado exitosamente' 
+            id: result.insertId,
+            message: 'Inventario creado exitosamente'
         });
     } catch (error) {
         console.error('Error creating inventory:', error);
@@ -1113,7 +1111,7 @@ app.put('/api/inventories/:id', authenticateToken, async (req, res) => {
         }
 
         const connection = await mysql.createConnection(dbConfig);
-        
+
         let query, params;
 
         if (req.user.role === 'admin') {
@@ -1141,12 +1139,12 @@ app.put('/api/inventories/:id', authenticateToken, async (req, res) => {
         );
 
         connection.end();
-        
+
         console.log(`Inventory updated: ${inventoryId}`);
-        
-        res.json({ 
+
+        res.json({
             success: true,
-            message: 'Inventario actualizado exitosamente' 
+            message: 'Inventario actualizado exitosamente'
         });
     } catch (error) {
         console.error('Error updating inventory:', error);
@@ -1159,7 +1157,7 @@ app.delete('/api/inventories/:id', authenticateToken, async (req, res) => {
     try {
         const inventoryId = req.params.id;
         const connection = await mysql.createConnection(dbConfig);
-        
+
         let query, params;
 
         if (req.user.role === 'admin') {
@@ -1186,12 +1184,12 @@ app.delete('/api/inventories/:id', authenticateToken, async (req, res) => {
         await connection.execute('DELETE FROM inventories WHERE id = ?', [inventoryId]);
 
         connection.end();
-        
+
         console.log(`Inventory deleted successfully: ${inventoryId}`);
-        
-        res.json({ 
+
+        res.json({
             success: true,
-            message: 'Inventario eliminado exitosamente' 
+            message: 'Inventario eliminado exitosamente'
         });
     } catch (error) {
         console.error('Error deleting inventory:', error);
@@ -1246,8 +1244,8 @@ app.post('/api/inventories/:id/upload', authenticateToken, upload.single('file')
         const columnNames = Object.keys(data[0]);
         console.log('Excel columns:', columnNames);
 
-        const barcodeKey = columnNames.find(key => 
-            key.toLowerCase().includes('barcode') || 
+        const barcodeKey = columnNames.find(key =>
+            key.toLowerCase().includes('barcode') ||
             key.toLowerCase().includes('codigo') ||
             key.toLowerCase().includes('código') ||
             key.toLowerCase().includes('ean') ||
@@ -1257,8 +1255,8 @@ app.post('/api/inventories/:id/upload', authenticateToken, upload.single('file')
 
         if (!barcodeKey) {
             connection.end();
-            return res.status(400).json({ 
-                error: 'El archivo debe contener una columna de código de barras' 
+            return res.status(400).json({
+                error: 'El archivo debe contener una columna de código de barras'
             });
         }
 
@@ -1271,7 +1269,7 @@ app.post('/api/inventories/:id/upload', authenticateToken, upload.single('file')
         for (const [index, row] of data.entries()) {
             try {
                 const barcode = row[barcodeKey] ? String(row[barcodeKey]).trim() : null;
-                
+
                 if (!barcode) {
                     errors++;
                     errorsList.push(`Fila ${index + 2}: Sin código de barras`);
@@ -1279,13 +1277,13 @@ app.post('/api/inventories/:id/upload', authenticateToken, upload.single('file')
                 }
 
                 const skuKey = columnNames.find(key => key.toLowerCase().includes('sku'));
-                const nameKey = columnNames.find(key => 
-                    key.toLowerCase().includes('name') || 
+                const nameKey = columnNames.find(key =>
+                    key.toLowerCase().includes('name') ||
                     key.toLowerCase().includes('nombre') ||
                     key.toLowerCase().includes('producto')
                 );
-                const stockKey = columnNames.find(key => 
-                    key.toLowerCase().includes('stock') || 
+                const stockKey = columnNames.find(key =>
+                    key.toLowerCase().includes('stock') ||
                     key.toLowerCase().includes('cantidad')
                 );
 
@@ -1316,10 +1314,10 @@ app.post('/api/inventories/:id/upload', authenticateToken, upload.single('file')
         );
 
         connection.end();
-        
+
         console.log(`File processed: ${processed} success, ${errors} errors`);
-        
-        const response = { 
+
+        const response = {
             success: true,
             message: `Se procesaron ${processed} productos exitosamente`,
             processed,
@@ -1350,7 +1348,7 @@ app.get('/api/inventories/:id/products/search', authenticateToken, async (req, r
         }
 
         const connection = await mysql.createConnection(dbConfig);
-        
+
         let query, params;
 
         if (req.user.role === 'admin') {
@@ -1400,7 +1398,7 @@ app.get('/api/inventories/:id/products', authenticateToken, async (req, res) => 
     try {
         const inventoryId = req.params.id;
         const connection = await mysql.createConnection(dbConfig);
-        
+
         let query, params;
 
         if (req.user.role === 'admin') {
@@ -1514,7 +1512,7 @@ app.post('/api/inventories/:id/count', authenticateToken, async (req, res) => {
         } else {
             productId = products[0].id;
             newCountedStock = (products[0].counted_stock || 0) + quantity;
-            
+
             await connection.execute(
                 `UPDATE inventory_products 
                  SET counted_stock = ?, count_date = NOW(), counted_by = ?
@@ -1579,10 +1577,10 @@ app.post('/api/inventories/:id/count', authenticateToken, async (req, res) => {
         );
 
         connection.end();
-        
+
         console.log(`Count registered successfully - added ${quantity} to product ${barcode}`);
-        
-        res.json({ 
+
+        res.json({
             success: true,
             message: 'Conteo registrado exitosamente',
             product: updatedProduct,
@@ -1606,7 +1604,7 @@ app.get('/api/inventories/:id/export', authenticateToken, async (req, res) => {
         const inventoryId = req.params.id;
         const format = req.query.format || 'excel';
         const type = req.query.type || 'all';
-        
+
         connection = await mysql.createConnection(dbConfig);
 
         let query, params;
@@ -1718,7 +1716,7 @@ app.get('/api/inventories/:id/export', authenticateToken, async (req, res) => {
 
         } else {
             const workbook = XLSX.utils.book_new();
-            
+
             const worksheetData = [
                 ['Código Barras', 'SKU', 'Producto', 'Stock Esperado', 'Stock Contado', 'Diferencia', 'Estado', 'Fecha Conteo'],
                 ...products.map(product => [
@@ -1734,7 +1732,7 @@ app.get('/api/inventories/:id/export', authenticateToken, async (req, res) => {
             ];
 
             const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-            
+
             if (worksheet['!ref']) {
                 const range = XLSX.utils.decode_range(worksheet['!ref']);
                 for (let col = range.s.c; col <= range.e.c; col++) {
@@ -1761,11 +1759,11 @@ app.get('/api/inventories/:id/export', authenticateToken, async (req, res) => {
             };
 
             const now = new Date();
-            const timestamp = now.toISOString().slice(0,19).replace(/:/g, '-');
+            const timestamp = now.toISOString().slice(0, 19).replace(/:/g, '-');
             const filename = `inventario_${typeNames[type]}_${inventory.name}_${timestamp}.xlsx`;
 
             const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-            
+
             res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
             res.send(excelBuffer);
@@ -1792,9 +1790,9 @@ app.get('/api/users', authenticateToken, async (req, res) => {
             WHERE company_id = ?
             ORDER BY created_at DESC
         `, [req.user.company_id]);
-        
+
         connection.end();
-        
+
         res.json(users);
     } catch (error) {
         console.error('Error getting users:', error);
@@ -1810,7 +1808,7 @@ app.post('/api/users', authenticateToken, async (req, res) => {
         }
 
         const { username, email, password, full_name, role } = req.body;
-        
+
         if (!username || !email || !password || !full_name) {
             return res.status(400).json({ error: 'Todos los campos son requeridos' });
         }
@@ -1830,8 +1828,8 @@ app.post('/api/users', authenticateToken, async (req, res) => {
 
         if (userCount[0].count >= company[0].user_limit) {
             connection.end();
-            return res.status(400).json({ 
-                error: `Límite de usuarios alcanzado. Máximo permitido: ${company[0].user_limit}` 
+            return res.status(400).json({
+                error: `Límite de usuarios alcanzado. Máximo permitido: ${company[0].user_limit}`
             });
         }
 
@@ -1992,13 +1990,13 @@ app.post('/api/users', authenticateToken, async (req, res) => {
         }
 
         connection.end();
-        
+
         console.log(`Usuario creado - Credenciales enviadas:`, { username, password });
-        
-        res.json({ 
+
+        res.json({
             success: true,
             message: 'Usuario creado exitosamente',
-            id: result.insertId 
+            id: result.insertId
         });
     } catch (error) {
         if (connection) connection.end();
@@ -2055,8 +2053,8 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
 
         await connection.execute(updateQuery, queryParams);
         connection.end();
-        
-        res.json({ 
+
+        res.json({
             success: true,
             message: 'Usuario actualizado exitosamente'
         });
@@ -2101,7 +2099,7 @@ app.get('/api/users/:id/available-inventories', authenticateToken, async (req, r
         `, [req.user.company_id, userId]);
 
         connection.end();
-        
+
         res.json(inventories);
     } catch (error) {
         console.error('Error getting available inventories:', error);
@@ -2137,7 +2135,7 @@ app.get('/api/users/:id/assigned-inventories', authenticateToken, async (req, re
         `, [userId]);
 
         connection.end();
-        
+
         res.json(inventories);
     } catch (error) {
         console.error('Error getting assigned inventories:', error);
@@ -2181,8 +2179,8 @@ app.post('/api/users/:userId/assign-inventory/:inventoryId', authenticateToken, 
         );
 
         connection.end();
-        
-        res.json({ 
+
+        res.json({
             success: true,
             message: 'Inventario asignado exitosamente'
         });
@@ -2210,8 +2208,8 @@ app.delete('/api/users/:userId/assign-inventory/:inventoryId', authenticateToken
         );
 
         connection.end();
-        
-        res.json({ 
+
+        res.json({
             success: true,
             message: 'Asignación removida exitosamente'
         });
@@ -2224,133 +2222,133 @@ app.delete('/api/users/:userId/assign-inventory/:inventoryId', authenticateToken
 
 // Ruta para enviar correos
 app.post('/api/email/send', authenticateToken, async (req, res) => {
-  try {
-    const { to, subject, html } = req.body;
-    console.log('📧 Solicitando envío a:', to);
-    
-    const result = await sendEmail({ to, subject, html });
-    
-    if (result.success) {
-      res.json({ 
-        success: true, 
-        message: 'Correo enviado exitosamente',
-        messageId: result.messageId
-      });
-    } else {
-      res.status(500).json({ 
-        success: false, 
-        error: result.error || 'Error enviando correo' 
-      });
+    try {
+        const { to, subject, html } = req.body;
+        console.log('📧 Solicitando envío a:', to);
+
+        const result = await sendEmail({ to, subject, html });
+
+        if (result.success) {
+            res.json({
+                success: true,
+                message: 'Correo enviado exitosamente',
+                messageId: result.messageId
+            });
+        } else {
+            res.status(500).json({
+                success: false,
+                error: result.error || 'Error enviando correo'
+            });
+        }
+    } catch (error) {
+        console.error('❌ Error en API de email:', error.message);
+        res.status(500).json({
+            success: false,
+            error: 'Error enviando correo: ' + error.message
+        });
     }
-  } catch (error) {
-    console.error('❌ Error en API de email:', error.message);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Error enviando correo: ' + error.message 
-    });
-  }
 });
 
 // Eliminar usuario (solo admin)
 app.delete('/api/users/:id', authenticateToken, async (req, res) => {
-  let connection;
-  try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'No tienes permisos para eliminar usuarios' });
+    let connection;
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'No tienes permisos para eliminar usuarios' });
+        }
+
+        const userId = req.params.id;
+
+        // No permitir eliminar el propio usuario
+        if (parseInt(userId) === req.user.id) {
+            return res.status(400).json({ error: 'No puedes eliminar tu propio usuario' });
+        }
+
+        connection = await mysql.createConnection(dbConfig);
+
+        // Verificar que el usuario existe y pertenece a la misma empresa
+        const [existingUsers] = await connection.execute(
+            'SELECT id FROM users WHERE id = ? AND company_id = ?',
+            [userId, req.user.company_id]
+        );
+
+        if (existingUsers.length === 0) {
+            connection.end();
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        // En lugar de eliminar físicamente, marcamos como inactivo
+        await connection.execute(
+            'UPDATE users SET is_active = FALSE WHERE id = ?',
+            [userId]
+        );
+
+        connection.end();
+
+        console.log(`Usuario desactivado: ${userId}`);
+
+        res.json({
+            success: true,
+            message: 'Usuario desactivado exitosamente'
+        });
+    } catch (error) {
+        if (connection) connection.end();
+        console.error('Error deleting user:', error);
+        res.status(500).json({ error: 'Error del servidor' });
     }
-
-    const userId = req.params.id;
-
-    // No permitir eliminar el propio usuario
-    if (parseInt(userId) === req.user.id) {
-      return res.status(400).json({ error: 'No puedes eliminar tu propio usuario' });
-    }
-
-    connection = await mysql.createConnection(dbConfig);
-
-    // Verificar que el usuario existe y pertenece a la misma empresa
-    const [existingUsers] = await connection.execute(
-      'SELECT id FROM users WHERE id = ? AND company_id = ?',
-      [userId, req.user.company_id]
-    );
-
-    if (existingUsers.length === 0) {
-      connection.end();
-      return res.status(404).json({ error: 'Usuario no encontrado' });
-    }
-
-    // En lugar de eliminar físicamente, marcamos como inactivo
-    await connection.execute(
-      'UPDATE users SET is_active = FALSE WHERE id = ?',
-      [userId]
-    );
-
-    connection.end();
-    
-    console.log(`Usuario desactivado: ${userId}`);
-    
-    res.json({ 
-      success: true,
-      message: 'Usuario desactivado exitosamente'
-    });
-  } catch (error) {
-    if (connection) connection.end();
-    console.error('Error deleting user:', error);
-    res.status(500).json({ error: 'Error del servidor' });
-  }
 });
 
 // Ruta para recuperación de contraseña - VERSIÓN DEFINITIVA
 app.post('/api/forgot-password', async (req, res) => {
-  let connection;
-  try {
-    const { email } = req.body;
-    console.log('🔑 Solicitud de recuperación para:', email);
+    let connection;
+    try {
+        const { email } = req.body;
+        console.log('🔑 Solicitud de recuperación para:', email);
 
-    if (!email) {
-      return res.status(400).json({ error: 'Email es requerido' });
-    }
+        if (!email) {
+            return res.status(400).json({ error: 'Email es requerido' });
+        }
 
-    connection = await mysql.createConnection(dbConfig);
-    
-    // Buscar usuario
-    const [users] = await connection.execute(
-      `SELECT u.*, c.name as company_name 
+        connection = await mysql.createConnection(dbConfig);
+
+        // Buscar usuario
+        const [users] = await connection.execute(
+            `SELECT u.*, c.name as company_name 
        FROM users u 
        LEFT JOIN companies c ON u.company_id = c.id 
        WHERE u.email = ? AND u.is_active = TRUE`,
-      [email]
-    );
+            [email]
+        );
 
-    // Siempre responder éxito por seguridad
-    if (users.length === 0) {
-      connection.end();
-      console.log('📧 Email no encontrado, pero respondiendo con éxito por seguridad');
-      return res.json({ 
-        success: true, 
-        message: 'Si el email existe en nuestro sistema, se enviaron las instrucciones' 
-      });
-    }
+        // Siempre responder éxito por seguridad
+        if (users.length === 0) {
+            connection.end();
+            console.log('📧 Email no encontrado, pero respondiendo con éxito por seguridad');
+            return res.json({
+                success: true,
+                message: 'Si el email existe en nuestro sistema, se enviaron las instrucciones'
+            });
+        }
 
-    const user = users[0];
-    
-    // ✅ GENERAR CONTRASEÑA TEMPORAL NUEVA
-    const temporaryPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
-    console.log('🔐 Contraseña temporal generada:', temporaryPassword);
-    
-    // ✅ HASHEAR LA NUEVA CONTRASEÑA
-    const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
-    
-    // ✅ ACTUALIZAR LA CONTRASEÑA EN LA BASE DE DATOS
-    await connection.execute(
-      'UPDATE users SET password = ? WHERE id = ?',
-      [hashedPassword, user.id]
-    );
-    
-    console.log('✅ Contraseña temporal actualizada en la base de datos');
+        const user = users[0];
 
-    // HTML del correo de recuperación - VERSIÓN QUE SÍ ENVÍA LA CONTRASEÑA
-    const html = `
+        // ✅ GENERAR CONTRASEÑA TEMPORAL NUEVA
+        const temporaryPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+        console.log('🔐 Contraseña temporal generada:', temporaryPassword);
+
+        // ✅ HASHEAR LA NUEVA CONTRASEÑA
+        const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
+
+        // ✅ ACTUALIZAR LA CONTRASEÑA EN LA BASE DE DATOS
+        await connection.execute(
+            'UPDATE users SET password = ? WHERE id = ?',
+            [hashedPassword, user.id]
+        );
+
+        console.log('✅ Contraseña temporal actualizada en la base de datos');
+
+        // HTML del correo de recuperación - VERSIÓN QUE SÍ ENVÍA LA CONTRASEÑA
+        const html = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -2466,33 +2464,33 @@ app.post('/api/forgot-password', async (req, res) => {
       </html>
     `;
 
-    // Enviar email
-    console.log('📧 Enviando email con contraseña temporal...');
-    const emailResult = await sendEmail({
-      to: email,
-      subject: '🔐 Recuperación de contraseña - Sistema de Inventario',
-      html: html
-    });
+        // Enviar email
+        console.log('📧 Enviando email con contraseña temporal...');
+        const emailResult = await sendEmail({
+            to: email,
+            subject: '🔐 Recuperación de contraseña - Sistema de Inventario',
+            html: html
+        });
 
-    connection.end();
-    
-    console.log('✅ Proceso de recuperación completado para:', email);
-    console.log('🔐 Contraseña temporal enviada:', temporaryPassword);
-    
-    res.json({ 
-      success: true, 
-      message: 'Se ha enviado un correo con una contraseña temporal' 
-    });
-    
-  } catch (error) {
-    if (connection) connection.end();
-    console.error('❌ Error en recuperación:', error);
-    // Por seguridad, siempre responder éxito
-    res.json({ 
-      success: true, 
-      message: 'Si el email existe en nuestro sistema, se han enviado las instrucciones' 
-    });
-  }
+        connection.end();
+
+        console.log('✅ Proceso de recuperación completado para:', email);
+        console.log('🔐 Contraseña temporal enviada:', temporaryPassword);
+
+        res.json({
+            success: true,
+            message: 'Se ha enviado un correo con una contraseña temporal'
+        });
+
+    } catch (error) {
+        if (connection) connection.end();
+        console.error('❌ Error en recuperación:', error);
+        // Por seguridad, siempre responder éxito
+        res.json({
+            success: true,
+            message: 'Si el email existe en nuestro sistema, se han enviado las instrucciones'
+        });
+    }
 });
 
 // Health check
@@ -2501,20 +2499,211 @@ app.get('/api/health', async (req, res) => {
         const connection = await mysql.createConnection(dbConfig);
         await connection.execute('SELECT 1');
         connection.end();
-        
-        res.json({ 
-            status: 'OK', 
+
+        res.json({
+            status: 'OK',
             message: 'Servidor y base de datos funcionando correctamente',
             timestamp: new Date().toISOString()
         });
     } catch (error) {
-        res.status(500).json({ 
-            status: 'ERROR', 
-            message: 'Error en la base de datos: ' + error.message 
+        res.status(500).json({
+            status: 'ERROR',
+            message: 'Error en la base de datos: ' + error.message
         });
     }
 });
 
+// ==============================================
+// 📌 RUTA PARA LEER COLUMNAS DE UN EXCEL
+// ==============================================
+app.post('/api/utils/excel-columns', upload.single('file'), async (req, res) => {
+    try {
+        console.log('📊 Procesando archivo Excel para leer columnas...');
+
+        if (!req.file) {
+            return res.status(400).json({ error: "No se subió ningún archivo" });
+        }
+
+        const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        
+        // Obtener primera fila como headers
+        const range = XLSX.utils.decode_range(worksheet['!ref']);
+        const headers = [];
+        
+        for (let col = range.s.c; col <= range.e.c; col++) {
+            const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+            const cell = worksheet[cellAddress];
+            headers.push(cell ? cell.v : `Columna ${col + 1}`);
+        }
+
+        console.log('📊 Columnas encontradas:', headers);
+
+        res.json({
+            success: true,
+            columns: headers.filter(header => header && header.toString().trim() !== ''),
+            totalColumns: headers.length,
+            fileName: req.file.originalname,
+            sheetName: sheetName
+        });
+
+    } catch (error) {
+        console.error("❌ Error leyendo Excel:", error);
+        res.status(500).json({ 
+            error: "Error al procesar el archivo Excel",
+            details: error.message 
+        });
+    }
+});
+
+// ==============================================
+// 📌 RUTA PARA SUBIR EXCEL CON MAPEO DE COLUMNAS
+// ==============================================
+app.post('/api/inventories/:id/upload-with-mapping', authenticateToken, upload.single('file'), async (req, res) => {
+    let connection;
+    try {
+        const inventoryId = req.params.id;
+        const { column_mapping } = req.body;
+        const file = req.file;
+
+        console.log('📤 Subiendo archivo con mapeo para inventario:', inventoryId);
+
+        if (!file) {
+            return res.status(400).json({ error: 'No se proporcionó archivo' });
+        }
+
+        connection = await mysql.createConnection(dbConfig);
+
+        // Verificar permisos
+        let query, params;
+        if (req.user.role === 'admin') {
+            query = 'SELECT * FROM inventories WHERE id = ? AND company_id = ?';
+            params = [inventoryId, req.user.company_id];
+        } else {
+            query = `
+                SELECT i.* FROM user_inventories ui
+                INNER JOIN inventories i ON ui.inventory_id = i.id
+                WHERE ui.user_id = ? AND i.id = ? AND ui.can_upload = TRUE
+            `;
+            params = [req.user.id, inventoryId];
+        }
+
+        const [inventories] = await connection.execute(query, params);
+
+        if (inventories.length === 0) {
+            connection.end();
+            return res.status(404).json({ error: 'Inventario no encontrado o sin permisos' });
+        }
+
+        // Parsear mapeo
+        let mapping;
+        try {
+            mapping = JSON.parse(column_mapping || '{}');
+        } catch (error) {
+            connection.end();
+            return res.status(400).json({ error: 'Formato de mapeo inválido' });
+        }
+
+        // Validar mapeo
+        if (!mapping.barcode) {
+            connection.end();
+            return res.status(400).json({ error: 'Se debe mapear la columna de código de barras' });
+        }
+
+        // Leer Excel
+        const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const data = XLSX.utils.sheet_to_json(worksheet);
+
+        if (data.length === 0) {
+            connection.end();
+            return res.status(400).json({ error: 'El archivo está vacío' });
+        }
+
+        let processed = 0;
+        let errors = 0;
+        const errorsList = [];
+
+        console.log(`Procesando ${data.length} filas con mapeo...`);
+
+        for (const [index, row] of data.entries()) {
+            try {
+                const barcode = row[mapping.barcode] ? String(row[mapping.barcode]).trim() : null;
+
+                if (!barcode) {
+                    errors++;
+                    errorsList.push(`Fila ${index + 2}: Sin código de barras`);
+                    continue;
+                }
+
+                const productData = {
+                    sku: mapping.sku && row[mapping.sku] ? String(row[mapping.sku]) : null,
+                    product_name: mapping.product_name && row[mapping.product_name] ? String(row[mapping.product_name]) : null,
+                    expected_stock: mapping.expected_stock && row[mapping.expected_stock] ? parseInt(row[mapping.expected_stock]) || 0 : 0,
+                    description: mapping.description && row[mapping.description] ? String(row[mapping.description]) : null,
+                    category: mapping.category && row[mapping.category] ? String(row[mapping.category]) : null
+                };
+
+                await connection.execute(
+                    `INSERT INTO inventory_products 
+                    (inventory_id, barcode, sku, product_name, expected_stock, description, category) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE
+                    sku = VALUES(sku), 
+                    product_name = VALUES(product_name), 
+                    expected_stock = VALUES(expected_stock),
+                    description = VALUES(description),
+                    category = VALUES(category)`,
+                    [
+                        inventoryId,
+                        barcode,
+                        productData.sku,
+                        productData.product_name,
+                        productData.expected_stock,
+                        productData.description,
+                        productData.category
+                    ]
+                );
+                processed++;
+            } catch (rowError) {
+                errors++;
+                errorsList.push(`Fila ${index + 2}: ${rowError.message}`);
+            }
+        }
+
+        await connection.execute(
+            'UPDATE inventories SET total_products = ? WHERE id = ?',
+            [processed, inventoryId]
+        );
+
+        connection.end();
+
+        console.log(`Archivo procesado con mapeo: ${processed} éxito, ${errors} errores`);
+
+        const response = {
+            success: true,
+            message: `Se procesaron ${processed} productos exitosamente`,
+            processed,
+            errors,
+            totalRows: data.length
+        };
+
+        if (errors > 0) {
+            response.errorDetails = errorsList.slice(0, 10);
+        }
+
+        res.json(response);
+
+    } catch (error) {
+        if (connection) connection.end();
+        console.error('Error procesando archivo con mapeo:', error);
+        res.status(500).json({ error: 'Error procesando archivo: ' + error.message });
+    }
+});
+
+// Iniciar servidor
 app.listen(PORT, () => {
     console.log(`Servidor corriendo en puerto ${PORT}`);
     console.log(`Sistema de Inventario con SuperAdmin`);

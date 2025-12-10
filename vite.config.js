@@ -5,20 +5,15 @@ import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
 
+// vite.config.js
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+
 export default defineConfig({
-  plugins: [
-    vue(),
-    vueDevTools(),
-  ],
-  resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
-    },
-  },
+  plugins: [vue()],
   server: {
-    host: '0.0.0.0',
-    port: 5173,
     proxy: {
+      // Redirige todas las peticiones /api a tu servidor Node.js
       '/api': {
         target: 'http://localhost:3000',
         changeOrigin: true,
@@ -27,3 +22,4 @@ export default defineConfig({
     }
   }
 })
+

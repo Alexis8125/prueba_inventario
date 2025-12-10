@@ -6,6 +6,7 @@ import CountingView from '@/views/CountingView.vue'
 import ReportsView from '@/views/ReportsView.vue'
 import UsersView from '@/views/UsersView.vue'
 import SuperAdminView from '@/views/SuperAdminView.vue'
+import DashboardView from '@/views/DashboardView.vue'
 
 const routes = [
   {
@@ -16,6 +17,11 @@ const routes = [
     path: '/login',
     name: 'login',
     component: LoginView
+  },
+  {
+    path: '/dashboard',
+    name: 'dashboard',
+    component: DashboardView
   },
   {
     path: '/inventarios',

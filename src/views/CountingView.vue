@@ -1,1090 +1,846 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <!-- Header Responsive Mejorado -->
+    <!-- Header Responsive -->
     <header class="bg-white shadow-sm border-b border-gray-200">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Header para móvil -->
-        <div class="lg:hidden">
-          <div class="flex flex-col space-y-4 py-4">
-            <!-- Primera fila: Botón volver y título -->
-            <div class="flex items-center justify-between">
-              <button
-                @click="goBackToInventories"
-                class="flex items-center space-x-2 text-[#8557FB] hover:text-[#6B45C8] bg-[#F7F1FF] hover:bg-[#F1E9FF] py-2 px-3 rounded-lg transition-colors duration-200 text-sm"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-                <span>Volver</span>
-              </button>
-              
-              <!-- Información del usuario en móvil -->
-              <div class="flex items-center space-x-2">
-                <div class="w-8 h-8 bg-[#F7F1FF] rounded-full flex items-center justify-center">
-                  <span class="text-[#8557FB] font-medium text-xs">{{ userInitials }}</span>
-                </div>
-              </div>
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-4 sm:py-0 sm:h-16 space-y-4 sm:space-y-0">
+          <!-- Logo y título -->
+          <div class="flex items-center space-x-4">
+            <div class="bg-[#8557FB] text-white p-2 rounded-lg">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+              </svg>
             </div>
-
-            <!-- Segunda fila: Título principal -->
-            <div class="text-center">
-              <h1 class="text-lg font-bold text-gray-900">Conteo de Inventario</h1>
-              <p class="text-xs text-gray-500 truncate">{{ inventory?.name }}</p>
-            </div>
-
-            <!-- Tercera fila: Controles móviles -->
-            <div class="flex items-center justify-between space-x-4">
-              <!-- Selector de modo móvil -->
-              <div class="flex-1">
-                <label class="block text-xs font-medium text-gray-700 mb-1">Modo:</label>
-                <div class="flex bg-gray-100 rounded-lg p-1">
-                  <button
-                    @click="setMode('auto')"
-                    :class="[
-                      'flex-1 px-2 py-1 rounded-md text-xs font-medium transition-all duration-200 flex items-center justify-center space-x-1',
-                      mode === 'auto' 
-                        ? 'bg-white shadow-sm text-[#8557FB]' 
-                        : 'text-gray-600 hover:text-gray-900'
-                    ]"
-                  >
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                    </svg>
-                    <span>Auto</span>
-                  </button>
-                  <button
-                    @click="setMode('manual')"
-                    :class="[
-                      'flex-1 px-2 py-1 rounded-md text-xs font-medium transition-all duration-200 flex items-center justify-center space-x-1',
-                      mode === 'manual' 
-                        ? 'bg-white shadow-sm text-[#8557FB]' 
-                        : 'text-gray-600 hover:text-gray-900'
-                    ]"
-                  >
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                    </svg>
-                    <span>Manual</span>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Control de sonido móvil -->
-              <div class="flex-shrink-0">
-                <label class="block text-xs font-medium text-gray-700 mb-1">Sonido:</label>
-                <button
-                  @click="toggleSound"
-                  :class="[
-                    'p-2 rounded-lg transition-colors duration-200',
-                    soundEnabled 
-                      ? 'bg-green-100 text-green-600 hover:bg-green-200' 
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  ]"
-                  :title="soundEnabled ? 'Desactivar sonido' : 'Activar sonido'"
-                >
-                  <svg v-if="soundEnabled" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M12 6a9 9 0 010 12m-4.5-9.5L12 3v18l-4.5-4.5H4a1 1 0 01-1-1v-7a1 1 0 011-1h3.5z"></path>
-                  </svg>
-                  <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clip-rule="evenodd"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path>
-                  </svg>
-                </button>
-              </div>
+            <div>
+              <h1 class="text-xl font-bold text-gray-900">Sistema de Inventario</h1>
+              <p class="text-sm text-gray-500">{{ user?.company_name }}</p>
             </div>
           </div>
-        </div>
-
-        <!-- Header para desktop -->
-        <div class="hidden lg:block">
-          <div class="flex justify-between items-center h-16">
-            <div class="flex items-center space-x-4">
-              <button
-                @click="goBackToInventories"
-                class="flex items-center space-x-2 text-[#8557FB] hover:text-[#6B45C8] bg-[#F7F1FF] hover:bg-[#F1E9FF] py-2 px-3 rounded-lg transition-colors duration-200"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-                </svg>
-                <span>Volver a Inventarios</span>
-              </button>
-              <div>
-                <h1 class="text-xl font-bold text-gray-900">Conteo de Inventario</h1>
-                <p class="text-sm text-gray-500">{{ inventory?.name }}</p>
-              </div>
-            </div>
-            <div class="flex items-center space-x-6">
-              <!-- Selector de modo desktop -->
-              <div class="flex items-center space-x-4">
-                <span class="text-sm font-medium text-gray-700">Modo:</span>
-                <div class="flex bg-gray-100 rounded-lg p-1">
-                  <button
-                    @click="setMode('auto')"
-                    :class="[
-                      'px-4 py-2 rounded-md text-sm font-medium transition-all duration-200',
-                      mode === 'auto' 
-                        ? 'bg-white shadow-sm text-[#8557FB]' 
-                        : 'text-gray-600 hover:text-gray-900'
-                    ]"
-                  >
-                    <span class="flex items-center space-x-2">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
-                      </svg>
-                      <span>Automático</span>
-                    </span>
-                  </button>
-                  <button
-                    @click="setMode('manual')"
-                    :class="[
-                      'px-4 py-2 rounded-md text-sm font-medium transition-all duration-200',
-                      mode === 'manual' 
-                        ? 'bg-white shadow-sm text-[#8557FB]' 
-                        : 'text-gray-600 hover:text-gray-900'
-                    ]"
-                  >
-                    <span class="flex items-center space-x-2">
-                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                      </svg>
-                      <span>Manual</span>
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Control de sonido desktop -->
-              <div class="flex items-center space-x-2">
-                <span class="text-sm font-medium text-gray-700">Sonido:</span>
-                <button
-                  @click="toggleSound"
-                  :class="[
-                    'p-2 rounded-lg transition-colors duration-200',
-                    soundEnabled 
-                      ? 'bg-green-100 text-green-600 hover:bg-green-200' 
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                  ]"
-                  :title="soundEnabled ? 'Desactivar sonido' : 'Activar sonido'"
-                >
-                  <svg v-if="soundEnabled" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M12 6a9 9 0 010 12m-4.5-9.5L12 3v18l-4.5-4.5H4a1 1 0 01-1-1v-7a1 1 0 011-1h3.5z"></path>
-                  </svg>
-                  <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clip-rule="evenodd"></path>
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path>
-                  </svg>
-                </button>
-              </div>
-
-              <!-- Información del usuario desktop -->
-              <div class="flex items-center space-x-3">
-                <div class="w-8 h-8 bg-[#F7F1FF] rounded-full flex items-center justify-center">
-                  <span class="text-[#8557FB] font-medium text-sm">{{ userInitials }}</span>
-                </div>
-                <span class="text-sm text-gray-700">{{ user?.full_name }}</span>
-              </div>
-            </div>
+          
+          <!-- Información de usuario y logout -->
+          <div class="flex items-center justify-between sm:justify-end space-x-4">
+            <span class="text-sm text-gray-700 hidden sm:block">Hola, {{ user?.full_name }}</span>
+            
+            <!-- Botón para gestión de usuarios (solo admin) -->
+            <button
+              v-if="user?.role === 'admin'"
+              @click="$router.push('/usuarios')"
+              class="flex items-center space-x-1 text-sm text-[#8557FB] hover:text-[#6B45C8] bg-[#F7F1FF] hover:bg-[#F1E9FF] py-2 px-3 rounded-lg transition-colors duration-200"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+              </svg>
+              <span>Usuarios</span>
+            </button>
+            
+            <button
+              @click="handleLogout"
+              class="flex items-center space-x-1 text-sm text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 py-2 px-3 rounded-lg transition-colors duration-200 w-full sm:w-auto justify-center"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+              </svg>
+              <span>Cerrar Sesión</span>
+            </button>
           </div>
         </div>
       </div>
     </header>
 
-    <main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-8">
-      <!-- Panel principal de conteo -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:p-6 mb-4 lg:mb-6">
-        <!-- Modo Automático -->
-        <div v-if="mode === 'auto'" class="space-y-4 lg:space-y-6">
-          <div class="text-center">
-            <div class="bg-green-50 border border-green-200 rounded-lg p-3 lg:p-4 inline-flex items-center space-x-2 mb-3 lg:mb-4">
-              <svg class="w-4 h-4 lg:w-5 lg:h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <!-- Tabla de inventarios -->
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <!-- Header de la tabla reorganizado para móvil -->
+        <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center p-4 border-b border-gray-200 space-y-4 lg:space-y-0">
+          <!-- Título y búsqueda -->
+          <div class="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+            <h2 class="text-lg font-bold text-gray-900 flex items-center mb-4 sm:mb-0">
+              <svg class="w-5 h-5 text-gray-700 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
               </svg>
-              <span class="text-green-700 font-medium text-sm lg:text-base">Modo Automático Activado</span>
-            </div>
-            <h2 class="text-lg lg:text-2xl font-bold text-gray-900 mb-2">Escaneo Automático</h2>
-            <p class="text-gray-600 text-sm lg:text-base">Escanea un código de barras y el sistema procesará automáticamente</p>
-          </div>
-
-          <!-- Campo de escaneo automático con autofocus -->
-          <div class="space-y-3 lg:space-y-4">
-            <label class="block text-sm font-medium text-gray-700 text-center">
-              Escanear Código de Barras
-            </label>
-            <input
-              ref="autoInput"
-              v-model="autoBarcode"
-              type="text"
-              class="w-full px-4 lg:px-6 py-3 lg:py-4 text-lg lg:text-xl border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white text-gray-900 text-center font-mono placeholder-gray-400 transition-colors duration-200"
-              placeholder="Coloca el cursor aquí y escanea"
-              @input="handleAutoInput"
-              @blur="handleAutoInputBlur"
-              autofocus
-            />
-            <p class="text-xs lg:text-sm text-gray-500 text-center">
-              El campo está listo para recibir códigos del escáner
-            </p>
-          </div>
-
-          <!-- Información del último escaneo -->
-          <div v-if="lastScanInfo" class="mt-4 lg:mt-8 p-4 lg:p-6 bg-blue-50 border border-blue-200 rounded-lg">
-            <h3 class="text-base lg:text-lg font-semibold text-blue-900 mb-3 lg:mb-4 flex items-center">
-              <svg class="w-4 h-4 lg:w-5 lg:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-              Último Escaneo - {{ lastScanInfo.product_name }}
-            </h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 text-sm">
-              <div>
-                <span class="font-medium text-gray-700 text-xs lg:text-sm">Código:</span>
-                <p class="text-gray-900 font-mono text-sm lg:text-base">{{ lastScanInfo.barcode }}</p>
+              Inventarios
+            </h2>
+            
+            <div class="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                  </svg>
+                </div>
+                <input
+                  v-model="searchQuery"
+                  type="text"
+                  class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8557FB] focus:border-b[#8557FB] bg-white text-sm w-full"
+                  placeholder="Buscar inventarios..."
+                >
               </div>
-              <div>
-                <span class="font-medium text-gray-700 text-xs lg:text-sm">Producto:</span>
-                <p class="text-gray-900 text-sm lg:text-base">{{ lastScanInfo.product_name || 'N/A' }}</p>
-              </div>
-              <div>
-                <span class="font-medium text-gray-700 text-xs lg:text-sm">Escaneado Ahora:</span>
-                <p class="text-gray-900 font-bold text-sm lg:text-base">{{ lastScanInfo.quantity }}</p>
-              </div>
-              <div>
-                <span class="font-medium text-gray-700 text-xs lg:text-sm">Total Contado:</span>
-                <p class="text-gray-900 font-bold text-sm lg:text-base">{{ lastScanInfo.total_counted }}</p>
-              </div>
-              <div>
-                <span class="font-medium text-gray-700 text-xs lg:text-sm">Stock Esperado:</span>
-                <p class="text-gray-900 text-sm lg:text-base">{{ lastScanInfo.expected_stock || 0 }}</p>
-              </div>
-              <div>
-                <span class="font-medium text-gray-700 text-xs lg:text-sm">Por Contar:</span>
-                <p class="text-gray-900 font-bold text-orange-600 text-sm lg:text-base">{{ lastScanInfo.remaining }}</p>
-              </div>
-              <div>
-                <span class="font-medium text-gray-700 text-xs lg:text-sm">Progreso:</span>
-                <p class="text-gray-900 font-bold text-sm lg:text-base">{{ lastScanInfo.progress_percentage }}%</p>
-              </div>
-              <div>
-                <span class="font-medium text-gray-700 text-xs lg:text-sm">Fecha/Hora:</span>
-                <p class="text-gray-900 text-xs lg:text-sm">{{ lastScanInfo.timestamp }}</p>
-              </div>
-            </div>
-            <div class="mt-3 lg:mt-4 p-2 lg:p-3 bg-green-100 border border-green-200 rounded">
-              <p class="text-green-700 text-xs lg:text-sm font-medium flex items-center">
-                <svg class="w-3 h-3 lg:w-4 lg:h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+              
+              <button
+                v-if="user?.role === 'admin'"
+                @click="showCreateModal = true"
+                class="bg-[#8557FB] hover:bg-[#6B45C8] text-white py-2 px-4 rounded-lg font-medium transition-colors duration-300 flex items-center space-x-2 justify-center sm:justify-start"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                 </svg>
-                Producto registrado correctamente. Listo para siguiente escaneo.
-              </p>
+                <span>Crear Inventario</span>
+              </button>
             </div>
           </div>
-
-          <!-- Mensaje de error para producto no encontrado -->
-          <div v-if="scanError" class="mt-4 lg:mt-8 p-4 lg:p-6 bg-red-50 border border-red-200 rounded-lg">
-            <h3 class="text-base lg:text-lg font-semibold text-red-900 mb-3 lg:mb-4 flex items-center">
-              <svg class="w-4 h-4 lg:w-5 lg:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-              Error en Escaneo
-            </h3>
-            <div class="text-red-700">
-              <p class="font-medium text-sm lg:text-base">Producto no registrado</p>
-              <p class="text-xs lg:text-sm mt-1">El código <span class="font-mono">{{ scanErrorBarcode }}</span> no existe en el sistema.</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Modo Manual -->
-        <div v-else class="space-y-4 lg:space-y-6">
-          <div class="text-center">
-            <div class="bg-[#F7F1FF] border border-[#8557FB] rounded-lg p-3 lg:p-4 inline-flex items-center space-x-2 mb-3 lg:mb-4">
-              <svg class="w-4 h-4 lg:w-5 lg:h-5 text-[#8557FB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-              </svg>
-              <span class="text-[#8557FB] font-medium text-sm lg:text-base">Modo Manual Activado</span>
-            </div>
-            <h2 class="text-lg lg:text-2xl font-bold text-gray-900 mb-2">Conteo Manual</h2>
-            <p class="text-gray-600 text-sm lg:text-base">Ingresa el código y la cantidad manualmente</p>
-          </div>
-
-          <!-- Formulario manual -->
-          <div class="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-6">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                Código de Barras
-              </label>
-              <input
-                ref="manualBarcodeInput"
-                v-model="manualBarcode"
-                type="text"
-                class="w-full px-3 lg:px-4 py-2 lg:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8557FB] focus:border-[#8557FB] bg-white text-gray-900 placeholder-gray-500 text-sm lg:text-base"
-                placeholder="Ingresa o escanea código"
-                @keypress.enter="searchManualProduct"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                Cantidad
-              </label>
-              <input
-                v-model.number="manualQuantity"
-                type="number"
-                min="1"
-                class="w-full px-3 lg:px-4 py-2 lg:py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8557FB] focus:border-[#8557FB] bg-white text-gray-900 text-sm lg:text-base"
-                placeholder="Cantidad contada"
-              />
-            </div>
-          </div>
-
-          <!-- Botones modo manual -->
-          <div class="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 justify-center">
+          
+          <!-- Acciones - reorganizadas para móvil -->
+          <div class="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-2">
+            <!-- Botón de actualizar siempre visible -->
             <button
-              @click="searchManualProduct"
-              class="bg-[#8557FB] hover:bg-[#6B45C8] text-white py-2 lg:py-3 px-6 lg:px-8 rounded-lg font-medium transition-colors duration-300 flex items-center space-x-2 justify-center text-sm lg:text-base"
+              @click="refreshInventories"
+              class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200 self-start"
+              title="Actualizar"
             >
-              <svg class="w-4 h-4 lg:w-5 lg:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
               </svg>
-              <span>Buscar Producto</span>
             </button>
-            <button
-              @click="registerManualCount"
-              :disabled="!manualProduct || !manualQuantity"
-              class="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white py-2 lg:py-3 px-6 lg:px-8 rounded-lg font-medium transition-colors duration-300 flex items-center space-x-2 justify-center text-sm lg:text-base"
-            >
-              <svg class="w-4 h-4 lg:w-5 lg:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            
+            <!-- Acciones para inventario seleccionado -->
+            <template v-if="selectedInventory">
+              <div class="flex flex-wrap gap-2">
+                <!-- Botones principales visibles -->
+                <button
+                  v-if="user?.role === 'admin' || selectedInventory?.can_edit"
+                  @click="editInventory(selectedInventory)"
+                  class="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                  title="Editar"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                  </svg>
+                </button>
+                <button
+                  @click="startCounting(selectedInventory)"
+                  class="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors duration-200"
+                  title="Iniciar Conteo"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                  </svg>
+                </button>
+                
+                <!-- Dropdown para acciones secundarias en móvil -->
+                <div class="relative sm:hidden">
+                  <button
+                    @click="toggleMobileActions"
+                    class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
+                    </svg>
+                  </button>
+                  <!-- Dropdown posicionado a la izquierda para evitar desbordamiento -->
+                  <div 
+                    v-if="showMobileActions" 
+                    class="fixed inset-0 z-50 sm:hidden"
+                    @click="showMobileActions = false"
+                  >
+                    <div class="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-lg border border-gray-200 max-h-60 overflow-y-auto">
+                      <div class="p-4 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900">Acciones</h3>
+                        <p class="text-sm text-gray-600">{{ selectedInventory.name }}</p>
+                      </div>
+                      <div class="p-2">
+                        <button
+                          v-if="user?.role === 'admin' || selectedInventory?.can_upload"
+                          @click="uploadProducts(selectedInventory); showMobileActions = false"
+                          class="flex items-center space-x-3 w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-100 rounded-lg"
+                        >
+                          <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                          </svg>
+                          <span>Cargar Excel</span>
+                        </button>
+                        <button
+                          @click="viewReports(selectedInventory); showMobileActions = false"
+                          class="flex items-center space-x-3 w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-100 rounded-lg"
+                        >
+                          <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                          </svg>
+                          <span>Ver Reportes</span>
+                        </button>
+                        <button
+                          v-if="user?.role === 'admin' || selectedInventory?.can_delete"
+                          @click="deleteInventory(selectedInventory); showMobileActions = false"
+                          class="flex items-center space-x-3 w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-lg"
+                        >
+                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                          </svg>
+                          <span>Eliminar</span>
+                        </button>
+                      </div>
+                      <div class="p-4 border-t border-gray-200">
+                        <button
+                          @click="showMobileActions = false"
+                          class="w-full bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors duration-300"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Acciones secundarias visibles en desktop -->
+                <div class="hidden sm:flex sm:space-x-2">
+                  <button
+                    v-if="user?.role === 'admin' || selectedInventory?.can_upload"
+                    @click="uploadProducts(selectedInventory)"
+                    class="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors duration-200"
+                    title="Cargar Excel"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                    </svg>
+                  </button>
+                  <button
+                    @click="viewReports(selectedInventory)"
+                    class="p-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors duration-200"
+                    title="Ver Reportes"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                  </button>
+                  <button
+                    v-if="user?.role === 'admin' || selectedInventory?.can_delete"
+                    @click="deleteInventory(selectedInventory)"
+                    class="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                    title="Eliminar"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                  </button>
+                </div>
+                
+                <button
+                  @click="clearSelection"
+                  class="p-2 text-gray-600 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200"
+                  title="Cancelar selección"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  </svg>
+                </button>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- AppTable Component -->
+        <AppTable
+          :data="filteredTableData"
+          :headers="tableHeaders"
+          :pageSize="pageSize"
+          :pageCurrent="currentPage"
+          :totalItems="filteredTableData.length"
+          :loading="loading"
+          :showPaginator="false"
+          :multipleSelection="false"
+          :tableSize="'small'"
+          :stripedRows="true"
+          :selectedRow="selectedInventory"
+          @row-double-click="handleRowDoubleClick"
+        >
+          <!-- Slot para progreso basado en unidades -->
+          <template #custom-progress="{ data }">
+            <div class="flex flex-col items-center">
+              <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
+                <div
+                  class="bg-[#8557FB] h-2 rounded-full transition-all duration-500 ease-out"
+                  :style="{ width: `${calculateUnitProgress(data)}%` }"
+                ></div>
+              </div>
+              <span class="text-xs text-gray-600">{{ Math.round(calculateUnitProgress(data)) }}%</span>
+              <span class="text-xs text-gray-400">
+                {{ data.counted_units || 0 }}/{{ data.total_units || 0 }} unidades
+              </span>
+            </div>
+          </template>
+
+          <!-- Slot para cuando no hay datos -->
+          <template #empty>
+            <div class="text-center py-12">
+              <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
               </svg>
-              <span>Registrar Conteo</span>
-            </button>
-          </div>
-
-          <!-- Información del producto manual -->
-          <div v-if="manualProduct && !manualProductError" class="mt-4 lg:mt-6 p-4 lg:p-6 bg-gray-50 border border-gray-200 rounded-lg">
-            <h3 class="text-base lg:text-lg font-semibold text-gray-900 mb-3 lg:mb-4">Producto Encontrado</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4 text-sm">
-              <div>
-                <span class="font-medium text-gray-700 text-xs lg:text-sm">Código:</span>
-                <p class="text-gray-900 font-mono text-sm lg:text-base">{{ manualProduct.barcode }}</p>
-              </div>
-              <div>
-                <span class="font-medium text-gray-700 text-xs lg:text-sm">Nombre:</span>
-                <p class="text-gray-900 text-sm lg:text-base">{{ manualProduct.product_name || 'N/A' }}</p>
-              </div>
-              <div>
-                <span class="font-medium text-gray-700 text-xs lg:text-sm">SKU:</span>
-                <p class="text-gray-900 text-sm lg:text-base">{{ manualProduct.sku || 'N/A' }}</p>
-              </div>
-              <div>
-                <span class="font-medium text-gray-700 text-xs lg:text-sm">Stock Esperado:</span>
-                <p class="text-gray-900 text-sm lg:text-base">{{ manualProduct.expected_stock || 0 }}</p>
-              </div>
-              <div v-if="manualProduct.counted_stock">
-                <span class="font-medium text-gray-700 text-xs lg:text-sm">Ya Contado:</span>
-                <p class="text-gray-900 font-bold text-green-600 text-sm lg:text-base">{{ manualProduct.counted_stock }}</p>
-              </div>
-              <div>
-                <span class="font-medium text-gray-700 text-xs lg:text-sm">Por Contar:</span>
-                <p class="text-gray-900 font-bold text-orange-600 text-sm lg:text-base">
-                  {{ Math.max(0, (manualProduct.expected_stock || 0) - (manualProduct.counted_stock || 0)) }}
-                </p>
-              </div>
+              <h3 class="text-lg font-medium text-gray-900 mb-2">No hay inventarios</h3>
+              <p class="text-gray-500 mb-4">Crea tu primer inventario para comenzar</p>
+              <button
+                v-if="user?.role === 'admin'"
+                @click="showCreateModal = true"
+                class="bg-[#8557FB] hover:bg-[#6B45C8] text-white py-2 px-4 rounded-lg font-medium transition-colors duration-300"
+              >
+                Crear Primer Inventario
+              </button>
             </div>
-          </div>
-
-          <!-- Error de producto no encontrado en modo manual -->
-          <div v-if="manualProductError" class="mt-4 lg:mt-6 p-4 lg:p-6 bg-red-50 border border-red-200 rounded-lg">
-            <h3 class="text-base lg:text-lg font-semibold text-red-900 mb-3 lg:mb-4 flex items-center">
-              <svg class="w-4 h-4 lg:w-5 lg:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-              </svg>
-              Producto No Encontrado
-            </h3>
-            <div class="text-red-700">
-              <p class="font-medium text-sm lg:text-base">El producto no está registrado</p>
-              <p class="text-xs lg:text-sm mt-1">El código <span class="font-mono">{{ manualBarcode }}</span> no existe en el sistema.</p>
-              <p class="text-xs lg:text-sm mt-2">Contacte al administrador para agregar este producto al inventario.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- SOLO ÚLTIMO ESCANEO Y PRODUCTO ANTERIOR -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-        <!-- Último Escaneo -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:p-6">
-          <h3 class="text-base lg:text-lg font-semibold text-gray-900 mb-3 lg:mb-4 flex items-center">
-            <svg class="w-4 h-4 lg:w-5 lg:h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            Último Escaneo
-          </h3>
-          <div v-if="lastScanInfo" class="space-y-3 lg:space-y-4">
-            <div class="flex justify-between items-center">
-              <span class="text-xs lg:text-sm text-gray-600">Producto</span>
-              <span class="text-base lg:text-lg font-bold text-green-600">{{ lastScanInfo.product_name }}</span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-xs lg:text-sm text-gray-600">Código</span>
-              <span class="text-base lg:text-lg font-mono text-gray-900">{{ lastScanInfo.barcode }}</span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-xs lg:text-sm text-gray-600">Stock Esperado</span>
-              <span class="text-base lg:text-lg font-bold text-purple-600">{{ lastScanInfo.expected_stock || 0 }}</span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-xs lg:text-sm text-gray-600">Total Contado</span>
-              <span class="text-base lg:text-lg font-bold text-green-600">{{ lastScanInfo.total_counted }}</span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-xs lg:text-sm text-gray-600">Escaneado Ahora</span>
-              <span class="text-base lg:text-lg font-bold text-blue-600">{{ lastScanInfo.quantity }}</span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-xs lg:text-sm text-gray-600">Por Contar</span>
-              <span class="text-base lg:text-lg font-bold text-orange-600">{{ lastScanInfo.remaining }}</span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-xs lg:text-sm text-gray-600">Progreso</span>
-              <span class="text-base lg:text-lg font-bold text-indigo-600">{{ lastScanInfo.progress_percentage }}%</span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-xs lg:text-sm text-gray-600">Fecha/Hora</span>
-              <span class="text-xs font-mono text-gray-500">{{ lastScanInfo.timestamp }}</span>
-            </div>
-          </div>
-          <div v-else class="text-center py-6 lg:py-8">
-            <svg class="w-10 h-10 lg:w-12 lg:h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-            </svg>
-            <p class="text-gray-500 text-xs lg:text-sm">Aún no se han realizado escaneos</p>
-          </div>
-        </div>
-
-        <!-- Producto Anterior -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 lg:p-6">
-          <h3 class="text-base lg:text-lg font-semibold text-gray-900 mb-3 lg:mb-4 flex items-center">
-            <svg class="w-4 h-4 lg:w-5 lg:h-5 text-purple-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"></path>
-            </svg>
-            Producto Anterior
-          </h3>
-          <div v-if="previousProduct" class="space-y-3 lg:space-y-4">
-            <div class="flex justify-between items-center">
-              <span class="text-xs lg:text-sm text-gray-600">Producto</span>
-              <span class="text-base lg:text-lg font-bold text-purple-600">{{ previousProduct.product_name }}</span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-xs lg:text-sm text-gray-600">Código</span>
-              <span class="text-base lg:text-lg font-mono text-gray-900">{{ previousProduct.barcode }}</span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-xs lg:text-sm text-gray-600">Stock Esperado</span>
-              <span class="text-base lg:text-lg font-bold text-purple-600">{{ previousProduct.expected_stock || 0 }}</span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-xs lg:text-sm text-gray-600">Total Contado</span>
-              <span class="text-base lg:text-lg font-bold text-green-600">{{ previousProduct.counted_stock || 0 }}</span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-xs lg:text-sm text-gray-600">Por Contar</span>
-              <span class="text-base lg:text-lg font-bold text-orange-600">{{ Math.max(0, (previousProduct.expected_stock || 0) - (previousProduct.counted_stock || 0)) }}</span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-xs lg:text-sm text-gray-600">Progreso</span>
-              <span class="text-base lg:text-lg font-bold text-indigo-600">{{ previousProductStats?.progress_percentage || 0 }}%</span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="text-xs lg:text-sm text-gray-600">Último Escaneo</span>
-              <span class="text-xs font-mono text-gray-500">{{ previousProduct.last_scan_time }}</span>
-            </div>
-          </div>
-          <div v-else class="text-center py-6 lg:py-8">
-            <svg class="w-10 h-10 lg:w-12 lg:h-12 text-gray-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-            </svg>
-            <p class="text-gray-500 text-xs lg:text-sm">Aún no hay productos anteriores escaneados</p>
-          </div>
-        </div>
+          </template>
+        </AppTable>
       </div>
     </main>
 
-    <!-- Botón flotante para escáner de cámara -->
-    <button
-      v-if="isMobileDevice && !showQRScanner"
-      @click="openQRScanner"
-      class="fixed bottom-6 right-6 bg-[#8557FB] hover:bg-[#8557FB] text-white p-4 rounded-full shadow-lg transition-all duration-300 z-40 flex items-center justify-center"
-      title="Abrir Escáner de Cámara"
-      style="min-width: 56px; min-height: 56px;"
-    >
-      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
-      </svg>
-    </button>
-
-    <!-- Modal del escáner QR MEJORADO -->
-    <div v-if="showQRScanner" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
-      <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-auto">
-        <div class="p-4 border-b border-gray-200 bg-[#8557FB] text-white rounded-t-lg">
-          <div class="flex justify-between items-center">
-            <h3 class="text-lg font-semibold">Escáner de Códigos</h3>
-            <button @click="closeQRScanner" class="text-white hover:text-blue-200 transition-colors p-1">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+    <!-- Modal de Crear Inventario -->
+    <transition name="modal">
+      <div v-if="showCreateModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <transition name="modal-content">
+          <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <svg class="w-5 h-5 text-[#8557FB] mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
               </svg>
-            </button>
-          </div>
-        </div>
-        
-        <div class="p-4">
-          <!-- Estado de carga -->
-          <div v-if="qrLoading" class="text-center py-8">
-            <div class="loading-spinner-large mx-auto mb-4"></div>
-            <p class="text-gray-600 font-medium">Inicializando cámara...</p>
-            <p class="text-sm text-gray-500 mt-2">Por favor espera</p>
-          </div>
-
-          <!-- Escáner QR -->
-          <div v-else-if="!qrError" class="scanner-container">
-            <qrcode-stream 
-              @decode="onQRCodeDecoded"
-              @init="onQRScannerInit"
-              :camera="camera"
-              class="rounded-lg overflow-hidden border-2 border-[#8557FB]"
-            >
-              <div class="scanner-overlay">
-                <div class="scanner-frame"></div>
-                <div class="scanner-line"></div>
-              </div>
-            </qrcode-stream>
+              Crear Nuevo Inventario
+            </h3>
             
-            <div class="mt-4 text-center">
-              <p class="text-sm text-gray-600 mb-2 font-medium">
-                Apunta la cámara hacia un código de barras
-              </p>
-              <p class="text-xs text-gray-500">
-                El escaneo es automático
-              </p>
-            </div>
-          </div>
+            <form @submit.prevent="createInventory">
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del Inventario *</label>
+                  <input
+                    v-model="newInventory.name"
+                    type="text"
+                    required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8557FB] focus:border-[#8557FB] bg-white text-gray-900"
+                    placeholder="Ej: Inventario General"
+                    ref="nameInput"
+                  >
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
+                  <textarea
+                    v-model="newInventory.description"
+                    rows="3"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8557FB] focus:border-[#8557FB] bg-white text-gray-900"
+                    placeholder="Descripción opcional del inventario"
+                  ></textarea>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Archivo Excel de Productos</label>
+                  <input
+                    type="file"
+                    ref="fileInput"
+                    accept=".xlsx, .xls"
+                    @change="handleFileSelect"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8557FB] focus:border-[#8557FB] bg-white text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#F1E9FF] file:text-[#8557FB] hover:file:bg-[#D7C8FF]"
+                  >
+                  <p class="text-xs text-gray-500 mt-1">Archivo Excel con columnas: código de barras, nombre del producto, stock esperado</p>
+                </div>
 
-          <!-- Mensaje de error -->
-          <div v-else class="text-center py-6">
-            <div class="bg-red-50 border border-red-200 rounded-lg p-6">
-              <svg class="w-16 h-16 text-red-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-              </svg>
-              <h4 class="text-lg font-medium text-gray-900 mb-2">No se puede acceder a la cámara</h4>
-              <p class="text-gray-600 mb-4 text-sm">{{ qrError }}</p>
-              
-              <div class="space-y-3">
-                <button 
-                  @click="retryQRScanner"
-                  class="w-full bg-[#8557FB] hover:bg-[#8557FB] text-white py-3 px-4 rounded-lg font-medium transition-colors duration-300"
+                <div v-if="selectedFile" class="p-3 bg-[#FBF7FF] border border-[#E9DDFF] rounded-lg">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-2">
+                      <svg class="w-4 h-4 text-[#8557FB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                      </svg>
+                      <span class="text-sm font-medium text-[#8557FB]">{{ selectedFile.name }}</span>
+                      <span class="text-xs text-[#8557FB]">({{ formatFileSize(selectedFile.size) }})</span>
+                    </div>
+                    <button
+                      type="button"
+                      @click="clearSelectedFile"
+                      class="text-[#8557FB] hover:text-[#5436A3]"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex space-x-3 mt-6">
+                <button
+                  type="button"
+                  @click="showCreateModal = false"
+                  class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg transition-colors duration-300"
                 >
-                  Reintentar
+                  Cancelar
                 </button>
-                
-                <button 
-                  @click="useManualInputInstead"
-                  class="w-full bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg text-sm transition-colors duration-300"
+                <button
+                  type="submit"
+                  :disabled="creatingInventory"
+                  class="flex-1 bg-[#8557FB] hover:bg-[#5436A3] disabled:bg-gray-400 text-white py-2 rounded-lg transition-colors duration-300 flex items-center justify-center"
                 >
-                  Usar entrada manual
+                  <svg v-if="creatingInventory" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>{{ creatingInventory ? 'Creando...' : 'Crear Inventario' }}</span>
                 </button>
               </div>
+            </form>
+          </div>
+        </transition>
+      </div>
+    </transition>
+
+    <!-- Modal de Edición -->
+    <transition name="modal">
+      <div v-if="showEditModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <transition name="modal-content">
+          <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Editar Inventario</h3>
+            
+            <form @submit.prevent="updateInventory">
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
+                  <input
+                    v-model="editingInventory.name"
+                    type="text"
+                    required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8557FB] focus:border-[#8557FB] bg-white text-gray-900"
+                    placeholder="Nombre del inventario"
+                    ref="editNameInput"
+                  >
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
+                  <textarea
+                    v-model="editingInventory.description"
+                    rows="3"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8557FB] focus:border-[#8557FB] bg-white text-gray-900"
+                    placeholder="Descripción del inventario"
+                  ></textarea>
+                </div>
+              </div>
+
+              <div class="flex space-x-3 mt-6">
+                <button
+                  type="button"
+                  @click="showEditModal = false"
+                  class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg transition-colors duration-300"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  class="flex-1 bg-[#8557FB] hover:bg-[#6B45C8] text-white py-2 rounded-lg transition-colors duration-300"
+                >
+                  Guardar Cambios
+                </button>
+              </div>
+            </form>
+          </div>
+        </transition>
+      </div>
+    </transition>
+
+    <!-- Modal de Confirmación de Eliminación -->
+    <transition name="modal">
+      <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <transition name="modal-content">
+          <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <div class="flex items-center space-x-3 mb-4">
+              <div class="bg-red-100 p-2 rounded-full">
+                <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                </svg>
+              </div>
+              <h3 class="text-lg font-semibold text-gray-900">Confirmar Eliminación</h3>
+            </div>
+            
+            <p class="text-gray-600 mb-6">
+              ¿Estás seguro de que deseas eliminar el inventario "<strong>{{ deletingInventory?.name }}</strong>"? 
+              Esta acción no se puede deshacer y se perderán todos los datos asociados.
+            </p>
+
+            <div class="flex space-x-3">
+              <button
+                @click="showDeleteModal = false"
+                class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg transition-colors duration-300"
+              >
+                Cancelar
+              </button>
+              <button
+                @click="confirmDelete"
+                class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg transition-colors duration-300"
+              >
+                Eliminar
+              </button>
             </div>
           </div>
-        </div>
+        </transition>
       </div>
-    </div>
+    </transition>
   </div>
 </template>
 
-<!-- El script se mantiene igual que en tu código original -->
 <script setup>
-import { ref, onMounted, nextTick, computed, onUnmounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, onMounted, nextTick, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useNotifications } from '@/composables/useNotifications'
 import { apiService } from '@/services/api'
-// Importar el escáner QR
-import { QrcodeStream } from 'vue-qrcode-reader'
+import AppTable from '@/components/atoms/AppTable.vue'
 
-const route = useRoute()
 const router = useRouter()
-const inventoryId = route.params.id
 const { success, error, info } = useNotifications()
 
-// Refs principales
-const inventory = ref(null)
-const mode = ref('auto')
+const inventories = ref([])
 const user = ref(JSON.parse(localStorage.getItem('user') || '{}'))
-const soundEnabled = ref(true)
+const selectedInventory = ref(null)
+const searchQuery = ref('')
 
-// Refs para modo automático
-const autoInput = ref(null)
-const autoBarcode = ref('')
-const lastScanInfo = ref(null)
-const scanError = ref(false)
-const scanErrorBarcode = ref('')
-const isProcessing = ref(false)
+// Estados para modales
+const showCreateModal = ref(false)
+const showEditModal = ref(false)
+const showDeleteModal = ref(false)
+const showMobileActions = ref(false)
+const editingInventory = ref({ id: null, name: '', description: '' })
+const deletingInventory = ref(null)
+const nameInput = ref(null)
+const editNameInput = ref(null)
+const fileInput = ref(null)
+const loading = ref(false)
+const creatingInventory = ref(false)
 
-// Refs para modo manual
-const manualBarcodeInput = ref(null)
-const manualBarcode = ref('')
-const manualQuantity = ref(1)
-const manualProduct = ref(null)
-const manualProductError = ref(false)
+// Estados para archivos
+const selectedFile = ref(null)
 
-// Refs para información por producto
-const currentProduct = ref(null)
-const currentProductStats = ref(null)
-const previousProduct = ref(null)
-const previousProductStats = ref(null)
+// Configuración de paginación
+const pageSize = ref(10)
+const currentPage = ref(1)
 
-// Refs para audio
-const successSound = ref(null)
-const errorSound = ref(null)
-
-// Refs para QR Scanner - SIMPLIFICADOS
-const showQRScanner = ref(false)
-const qrLoading = ref(false)
-const qrError = ref('')
-const camera = ref('auto')
-const isMobileDevice = ref(false)
-
-// Computed
-const userInitials = computed(() => {
-  if (!user.value.full_name) return 'U'
-  return user.value.full_name
-    .split(' ')
-    .map(word => word[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
+const newInventory = ref({
+  name: '',
+  description: ''
 })
 
-// Función para volver a inventarios
-async function goBackToInventarios() {
-  try {
-    await router.push('/inventarios')
-  } catch (err) {
-    console.error('Error en navegación:', err)
-    window.location.href = '/'
-  }
+// Configuración de la tabla
+const tableHeaders = ref([
+  { field: 'name', header: 'Nombre', width: '200px' },
+  { field: 'description', header: 'Descripción', width: '200px' },
+  { field: 'total_products', header: 'Productos', width: '100px' },
+  { field: 'total_units', header: 'Unidades', width: '100px' },
+  { field: 'counted_products', header: 'Productos Contados', width: '160px' },
+  { field: 'counted_units', header: 'Unid. Contadas', width: '160px' },
+  { field: 'progress', header: 'Progreso', width: '120px' },
+  { field: 'created_at', header: 'Creado', width: '120px' },
+  { field: 'created_by_name', header: 'Creado por', width: '150px' },
+  { field: 'updated_at', header: 'Última Actualización', width: '150px' }
+])
+
+// Datos formateados para la tabla
+const tableData = computed(() => {
+  return inventories.value.map(inventory => ({
+    ...inventory,
+    progress: calculateUnitProgress(inventory),
+    created_at: formatDateForTable(inventory.created_at)
+  }))
+})
+
+// Datos filtrados por búsqueda
+const filteredTableData = computed(() => {
+  if (!searchQuery.value) return tableData.value
+  
+  const query = searchQuery.value.toLowerCase()
+  return tableData.value.filter(inventory => 
+    inventory.name?.toLowerCase().includes(query) ||
+    inventory.description?.toLowerCase().includes(query) ||
+    inventory.created_by_name?.toLowerCase().includes(query)
+  )
+})
+
+// Función para calcular progreso basado en unidades
+function calculateUnitProgress(inventory) {
+  const totalUnits = inventory.total_units || 0
+  const countedUnits = inventory.counted_units || 0
+  
+  if (totalUnits === 0) return 0
+  
+  const progress = (countedUnits / totalUnits) * 100
+  return Math.min(100, Math.max(0, progress))
 }
 
-// Funciones de sonido
-function playSuccessSound() {
-  if (soundEnabled.value && successSound.value) {
-    try {
-      successSound.value.currentTime = 0
-      successSound.value.play().catch(e => console.log('Error playing sound:', e))
-    } catch (e) {
-      console.log('Error with sound:', e)
-    }
-  }
-}
-
-function playErrorSound() {
-  if (soundEnabled.value && errorSound.value) {
-    try {
-      errorSound.value.currentTime = 0
-      errorSound.value.play().catch(e => console.log('Error playing sound:', e))
-    } catch (e) {
-      console.log('Error with sound:', e)
-    }
-  }
-}
-
-function initializeSounds() {
-  // Sonidos simples base64
-  if (!successSound.value) {
-    successSound.value = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==')
-  }
-  if (!errorSound.value) {
-    errorSound.value = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==')
-  }
-}
-
-function toggleSound() {
-  soundEnabled.value = !soundEnabled.value
-}
-
-// Funciones de modo
-function setMode(newMode) {
-  mode.value = newMode
-  scanError.value = false
-  manualProductError.value = false
-  nextTick(() => {
-    if (newMode === 'auto') {
-      autoInput.value?.focus()
-    } else {
-      manualBarcodeInput.value?.focus()
-    }
+// Funciones de formato
+function formatDate(dateString) {
+  if (!dateString) return '-'
+  const date = new Date(dateString)
+  return date.toLocaleDateString('es-ES', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
   })
 }
 
-// Detección de dispositivo móvil
-function checkMobileDevice() {
-  isMobileDevice.value = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-  console.log('Móvil detectado:', isMobileDevice.value)
-}
-
-// Funciones QR Scanner SIMPLIFICADAS
-async function openQRScanner() {
-  console.log('Abriendo escáner QR...')
-  showQRScanner.value = true
-  qrError.value = ''
-  qrLoading.value = true
-  
-  await nextTick()
-}
-
-function closeQRScanner() {
-  showQRScanner.value = false
-  qrError.value = ''
-  qrLoading.value = false
-}
-
-async function onQRScannerInit(promise) {
-  console.log('Inicializando cámara...')
-  try {
-    qrLoading.value = true
-    await promise
-    console.log('Cámara inicializada correctamente')
-    qrLoading.value = false
-  } catch (err) {
-    console.error('Error en cámara:', err)
-    qrError.value = getCameraErrorMessage(err)
-    qrLoading.value = false
-  }
-}
-
-function getCameraErrorMessage(error) {
-  console.log('Tipo de error:', error.name)
-  
-  if (error.name === 'NotAllowedError') {
-    return 'Permiso de cámara denegado. Por favor, permite el acceso a la cámara en tu navegador.'
-  } else if (error.name === 'NotFoundError') {
-    return 'No se encontró ninguna cámara en el dispositivo.'
-  } else if (error.name === 'NotSupportedError') {
-    return 'Tu navegador no soporta acceso a la cámara.'
-  } else if (error.name === 'NotReadableError') {
-    return 'La cámara no se puede leer. Puede que esté siendo usada por otra aplicación.'
-  } else if (error.name === 'OverconstrainedError') {
-    return 'No se puede usar la cámara con la configuración requerida.'
-  } else if (error.name === 'SecurityError') {
-    return 'La cámara requiere HTTPS. Estás en: ' + window.location.protocol + '//' + window.location.host
-  }
-  
-  return `Error: ${error.message || 'Error desconocido'}`
-}
-
-function onQRCodeDecoded(decodedText) {
-  console.log('Código escaneado:', decodedText)
-  
-  if (decodedText && decodedText.trim()) {
-    if (mode.value === 'auto') {
-      autoBarcode.value = decodedText
-      processAutoScan()
-    } else {
-      manualBarcode.value = decodedText
-      searchManualProduct()
-    }
-    
-    closeQRScanner()
-    playSuccessSound()
-    success('Escaneo exitoso', 'Código escaneado correctamente')
-  }
-}
-
-function retryQRScanner() {
-  console.log('Reintentando cámara...')
-  qrError.value = ''
-  qrLoading.value = false
-  showQRScanner.value = false
-  
-  setTimeout(() => {
-    openQRScanner()
-  }, 500)
-}
-
-function useManualInputInstead() {
-  closeQRScanner()
-  nextTick(() => {
-    if (mode.value === 'auto') {
-      autoInput.value?.focus()
-    } else {
-      manualBarcodeInput.value?.focus()
-    }
+function formatDateForTable(dateString) {
+  if (!dateString) return '-'
+  const date = new Date(dateString)
+  return date.toLocaleDateString('es-ES', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
   })
 }
 
-// Funciones del sistema de conteo (se mantienen igual)
-async function handleAutoInput() {
-  if (autoBarcode.value.trim() && !isProcessing.value) {
-    clearTimeout(window.autoScanTimeout)
-    window.autoScanTimeout = setTimeout(() => {
-      processAutoScan()
-    }, 300)
-  }
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
-async function handleAutoInputBlur() {
-  if (autoBarcode.value.trim() && !isProcessing.value) {
-    processAutoScan()
-  }
+// Manejar doble click
+function handleRowDoubleClick(inventory) {
+  selectedInventory.value = inventory
 }
 
-async function processAutoScan() {
-  if (isProcessing.value) return
+// Limpiar selección
+function clearSelection() {
+  selectedInventory.value = null
+  showMobileActions.value = false
+}
 
-  const barcode = autoBarcode.value.trim()
-  if (!barcode) return
+// Toggle acciones móviles
+function toggleMobileActions() {
+  showMobileActions.value = !showMobileActions.value
+}
 
-  isProcessing.value = true
+// Refrescar inventarios
+function refreshInventories() {
+  fetchInventories()
+  success('Actualizado', 'Lista de inventarios actualizada')
+}
 
+// Funciones CRUD usando el servicio de API
+async function fetchInventories() {
+  loading.value = true
   try {
-    const products = await apiService.searchProducts(inventoryId, barcode)
-    
-    if (products.length > 0) {
-      const product = products[0]
-      const countResult = await registerCount(product.barcode, 1)
-      
-      if (countResult.success) {
-        if (currentProduct.value) {
-          previousProduct.value = { ...currentProduct.value }
-          previousProductStats.value = { ...currentProductStats.value }
-          previousProduct.value.last_scan_time = new Date().toLocaleString('es-ES')
-        }
-        
-        currentProduct.value = countResult.product
-        currentProductStats.value = countResult.productStats
-        
-        lastScanInfo.value = {
-          barcode: product.barcode,
-          product_name: product.product_name,
-          quantity: 1,
-          total_counted: countResult.product.counted_stock,
-          expected_stock: countResult.product.expected_stock,
-          remaining: countResult.productStats.remaining,
-          progress_percentage: countResult.productStats.progress_percentage,
-          timestamp: new Date().toLocaleString('es-ES')
-        }
-        
-        scanError.value = false
-        playSuccessSound()
-        success('Producto registrado', `${product.product_name} contado correctamente`)
-      }
-    } else {
-      scanError.value = true
-      scanErrorBarcode.value = barcode
-      playErrorSound()
-      error('Producto no encontrado', `El código ${barcode} no existe en el sistema`)
-      lastScanInfo.value = null
-      currentProduct.value = null
-      currentProductStats.value = null
-    }
+    const data = await apiService.getInventories()
+    // Asegurarse de que los valores numéricos sean correctos
+    inventories.value = data.map(inv => ({
+      ...inv,
+      total_units: Number(inv.total_units) || 0,
+      counted_units: Number(inv.counted_units) || 0,
+      total_products: Number(inv.total_products) || 0,
+      counted_products: Number(inv.counted_products) || 0
+    }))
+    console.log('Inventarios cargados:', inventories.value)
   } catch (err) {
-    console.error('Error en escaneo automático:', err)
-    playErrorSound()
-    error('Error', 'Error en el escaneo automático')
-    scanError.value = false
-    currentProduct.value = null
-    currentProductStats.value = null
+    if (err.message !== 'Unauthorized') {
+      error('Error de conexión', 'No se pudo conectar con el servidor')
+    }
   } finally {
-    autoBarcode.value = ''
-    isProcessing.value = false
-    nextTick(() => {
-      autoInput.value?.focus()
-    })
+    loading.value = false
   }
 }
 
-async function searchManualProduct() {
-  if (!manualBarcode.value.trim()) {
-    playErrorSound()
-    error('Error', 'Ingresa un código de barras')
-    return
-  }
-
-  try {
-    const products = await apiService.searchProducts(inventoryId, manualBarcode.value)
+// Manejar selección de archivo
+function handleFileSelect(event) {
+  const file = event.target.files[0]
+  if (file) {
+    // Validar tipo de archivo
+    const validTypes = ['.xlsx', '.xls']
+    const fileExtension = '.' + file.name.split('.').pop().toLowerCase()
     
-    if (products.length > 0) {
-      manualProduct.value = products[0]
-      manualProductError.value = false
-      playSuccessSound()
-    } else {
-      manualProduct.value = null
-      manualProductError.value = true
-      playErrorSound()
-      error('Producto no encontrado', `El código ${manualBarcode.value} no existe en el sistema`)
+    if (!validTypes.includes(fileExtension)) {
+      error('Error', 'Solo se permiten archivos Excel (.xlsx, .xls)')
+      event.target.value = ''
+      return
     }
-  } catch (err) {
-    console.error('Error buscando producto:', err)
-    playErrorSound()
-    error('Error', 'Error al buscar el producto')
-    manualProductError.value = false
+    
+    // Validar tamaño (máximo 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      error('Error', 'El archivo no debe superar los 10MB')
+      event.target.value = ''
+      return
+    }
+    
+    selectedFile.value = file
   }
 }
 
-async function registerManualCount() {
-  if (!manualProduct.value || !manualQuantity.value) {
-    playErrorSound()
-    error('Error', 'Completa todos los campos')
+function clearSelectedFile() {
+  selectedFile.value = null
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
+}
+
+async function createInventory() {
+  if (!newInventory.value.name.trim()) {
+    error('Error', 'El nombre del inventario es requerido')
     return
   }
   
-  const result = await registerCount(manualProduct.value.barcode, manualQuantity.value)
+  creatingInventory.value = true
   
-  if (result.success) {
-    if (currentProduct.value) {
-      previousProduct.value = { ...currentProduct.value }
-      previousProductStats.value = { ...currentProductStats.value }
-      previousProduct.value.last_scan_time = new Date().toLocaleString('es-ES')
+  try {
+    const data = await apiService.createInventory(newInventory.value)
+    const inventoryId = data.id
+    
+    // Si hay un archivo seleccionado, cargarlo inmediatamente
+    if (selectedFile.value) {
+      await apiService.uploadProducts(inventoryId, selectedFile.value, false)
     }
     
-    currentProduct.value = result.product
-    currentProductStats.value = result.productStats
+    // Limpiar formulario y cerrar modal
+    newInventory.value = { name: '', description: '' }
+    clearSelectedFile()
+    showCreateModal.value = false
     
-    lastScanInfo.value = {
-      barcode: manualProduct.value.barcode,
-      product_name: manualProduct.value.product_name,
-      quantity: manualQuantity.value,
-      total_counted: result.product.counted_stock,
-      expected_stock: result.product.expected_stock,
-      remaining: result.productStats.remaining,
-      progress_percentage: result.productStats.progress_percentage,
-      timestamp: new Date().toLocaleString('es-ES')
+    // Actualizar lista
+    fetchInventories()
+    success('Éxito', 'Inventario creado exitosamente' + (selectedFile.value ? ' con productos cargados' : ''))
+  } catch (err) {
+    if (err.message !== 'Unauthorized') {
+      error('Error', err.message || 'Error al crear el inventario')
     }
-    
-    manualBarcode.value = ''
-    manualQuantity.value = 1
-    manualProduct.value = null
-    manualProductError.value = false
-    
-    nextTick(() => {
-      manualBarcodeInput.value?.focus()
+  } finally {
+    creatingInventory.value = false
+  }
+}
+
+function editInventory(inventory) {
+  editingInventory.value = {
+    id: inventory.id,
+    name: inventory.name,
+    description: inventory.description || ''
+  }
+  showEditModal.value = true
+  nextTick(() => {
+    editNameInput.value?.focus()
+  })
+}
+
+async function updateInventory() {
+  try {
+    await apiService.updateInventory(editingInventory.value.id, {
+      name: editingInventory.value.name,
+      description: editingInventory.value.description
     })
-  }
-}
-
-async function registerCount(barcode, quantity) {
-  try {
-    const response = await apiService.registerCount(inventoryId, barcode, quantity)
-    await fetchInventory()
-    return {
-      success: true,
-      product: response.product,
-      productStats: response.productStats
+    
+    showEditModal.value = false
+    fetchInventories()
+    success('Éxito', 'Inventario actualizado exitosamente')
+  } catch (err) {
+    if (err.message !== 'Unauthorized') {
+      error('Error', err.message || 'Error al actualizar el inventario')
     }
-  } catch (err) {
-    console.error('Error registrando conteo:', err)
-    playErrorSound()
-    error('Error', err.message || 'Error al registrar el conteo')
-    return { success: false }
   }
 }
 
-async function fetchInventory() {
+function deleteInventory(inventory) {
+  deletingInventory.value = inventory
+  showDeleteModal.value = true
+}
+
+async function confirmDelete() {
   try {
-    inventory.value = await apiService.getInventory(inventoryId)
+    await apiService.deleteInventory(deletingInventory.value.id)
+    showDeleteModal.value = false
+    fetchInventories()
+    success('Éxito', 'Inventario eliminado exitosamente')
   } catch (err) {
-    console.error('Error cargando inventario:', err)
-    error('Error', 'Error al cargar el inventario')
+    if (err.message !== 'Unauthorized') {
+      error('Error', err.message || 'Error al eliminar el inventario')
+    }
   }
+}
+
+function uploadProducts(inventory) {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '.xlsx, .xls'
+  input.onchange = async (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      await uploadFile(inventory.id, file, false)
+    }
+  }
+  input.click()
+}
+
+async function uploadFile(inventoryId, file, overwrite = false) {
+  try {
+    const data = await apiService.uploadProducts(inventoryId, file, overwrite)
+    
+    success('Éxito', data.message)
+    if (data.errorDetails && data.errorDetails.length > 0) {
+      info('Advertencias', `Algunas filas tuvieron errores: ${data.errorDetails.join(', ')}`)
+    }
+    fetchInventories()
+  } catch (err) {
+    if (err.message !== 'Unauthorized') {
+      error('Error', err.message || 'Error al cargar el archivo')
+    }
+  }
+}
+
+function startCounting(inventory) {
+  router.push(`/conteo/${inventory.id}`)
+}
+
+function viewReports(inventory) {
+  router.push(`/reportes/${inventory.id}`)
+}
+
+function handleLogout() {
+  localStorage.removeItem('token')
+  localStorage.removeItem('user')
+  router.push('/login')
 }
 
 onMounted(() => {
-  initializeSounds()
-  checkMobileDevice()
-  fetchInventory()
-  nextTick(() => {
-    autoInput.value?.focus()
-  })
-})
-
-onUnmounted(() => {
-  closeQRScanner()
+  fetchInventories()
 })
 </script>
 
 <style scoped>
-/* Estilos para móviles */
-@media (max-width: 768px) {
-  .grid-cols-1, .grid-cols-2, .lg\:grid-cols-2 {
-    grid-template-columns: 1fr;
-  }
-  
-  button {
-    min-height: 44px;
-  }
-  
-  input {
-    font-size: 16px;
-  }
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.3s ease;
 }
 
-/* Estilos del escáner */
-.scanner-container {
-  position: relative;
-  width: 100%;
-  max-width: 400px;
-  margin: 0 auto;
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
 }
 
-.scanner-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
+.modal-content-enter-active,
+.modal-content-leave-active {
+  transition: all 0.3s ease;
 }
 
-.scanner-frame {
-  width: 250px;
-  height: 150px;
-  border: 2px solid #00ff00;
-  border-radius: 12px;
-  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
-  position: relative;
+.modal-content-enter-from {
+  opacity: 0;
+  transform: scale(0.9);
 }
 
-.scanner-line {
-  position: absolute;
-  width: 100%;
-  height: 2px;
-  background: #00ff00;
-  animation: scan 2s linear infinite;
+.modal-content-leave-to {
+  opacity: 0;
+  transform: scale(1.1);
 }
 
-@keyframes scan {
-  0% { top: 0; }
-  50% { top: 100%; }
-  100% { top: 0; }
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.loading-spinner-large {
-  width: 60px;
-  height: 60px;
-  border: 6px solid #f3f3f3;
-  border-top: 6px solid #8557FB;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+.mobile-actions-enter-active,
+.mobile-actions-leave-active {
+  transition: all 0.3s ease;
 }
 
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+.mobile-actions-enter-from {
+  opacity: 0;
+  transform: translateY(100%);
+}
+
+.mobile-actions-leave-to {
+  opacity: 0;
+  transform: translateY(100%);
 }
 </style>
-
-
-

@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+  <div class="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center p-4">
     <!-- Modal de recuperación de contraseña -->
     <ForgotPasswordModal 
       v-if="showForgotPassword"
@@ -9,7 +9,13 @@
     
     <div class="max-w-md w-full">
       <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
-        <div class="bg-gradient-to-r from-[#8557FB] to-[#8557FB] p-6 text-center">
+        <div class="bg-gradient-to-r from-blue-600 to-blue-700 p-6 text-center">
+          <!-- Espacio para tu logo 4x4 -->
+          <div class="flex justify-center mb-4">
+            <div class="w-16 h-16 bg-white rounded-lg p-1 flex items-center justify-center">
+              <img src="#" alt="Logo" class="w-full h-full object-contain" />
+            </div>
+          </div>
           <h1 class="text-2xl font-bold text-white mb-2">Sistema de Inventario</h1>
           <p class="text-blue-100 text-sm">Gestión de conteos por empresas</p>
         </div>
@@ -32,7 +38,7 @@
                 v-model="credentials.username"
                 type="text"
                 required
-                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8557FB] focus:border-[#8557FB] bg-white text-gray-900 placeholder-gray-500 transition-colors duration-200"
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-500 transition-colors duration-200"
                 placeholder="Ingresa tu usuario"
                 autocomplete="username"
               >
@@ -48,7 +54,7 @@
                   v-model="credentials.password"
                   :type="showLoginPassword ? 'text' : 'password'"
                   required
-                  class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8557FB] focus:border-[#8557FB] bg-white text-gray-900 placeholder-gray-500 transition-colors duration-200"
+                  class="w-full px-4 py-3 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-500 transition-colors duration-200"
                   placeholder="Ingresa tu contraseña"
                   autocomplete="current-password"
                 >
@@ -71,7 +77,7 @@
             <button
               type="submit"
               :disabled="isLoading"
-              class="w-full bg-[#8557FB] hover:bg-[#6A32F2] disabled:bg-[#9F7BFC] text-white py-3 px-4 rounded-lg font-medium transition-colors duration-300 flex items-center justify-center"
+              class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-3 px-4 rounded-lg font-medium transition-colors duration-300 flex items-center justify-center shadow-md hover:shadow-lg"
             >
               <svg v-if="isLoading" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -84,7 +90,7 @@
           <div class="mt-6 text-center space-y-2">
             <button
               @click="showForgotPassword = true"
-              class="block w-full text-[#8557FB] hover:text-[#6A32F2] text-sm font-medium transition-colors duration-200"
+              class="block w-full text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors duration-200"
             >
               ¿Olvidaste tu contraseña?
             </button>

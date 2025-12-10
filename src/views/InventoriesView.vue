@@ -1,77 +1,64 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <!-- Header Responsive -->
-    <header class="bg-white shadow-sm border-b border-gray-200">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center py-4 sm:py-0 sm:h-16 space-y-4 sm:space-y-0">
-          <!-- Logo y título -->
-          <div class="flex items-center space-x-4">
-            <div class="bg-[#8557FB] text-white p-2 rounded-lg">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-              </svg>
+    <!-- Sidebar -->
+    <Sidebar :user="user" />
+    
+    <!-- Contenido principal con sidebar -->
+    <div class="pl-0 lg:pl-64 transition-all duration-300">
+      <!-- Header -->
+      <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex justify-between items-center h-16">
+            <div class="flex items-center">
+              <h1 class="text-xl font-bold text-gray-900">Inventarios</h1>
+              <span class="ml-3 px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                {{ user?.company_name }}
+              </span>
             </div>
-            <div>
-              <h1 class="text-xl font-bold text-gray-900">Sistema de Inventario</h1>
-              <p class="text-sm text-gray-500">{{ user?.company_name }}</p>
+            
+            <!-- Información de usuario y logout -->
+            <div class="flex items-center space-x-4">
+              <div class="hidden sm:flex items-center space-x-3">
+                <div class="text-right">
+                  <p class="text-sm font-medium text-gray-700">{{ user?.full_name }}</p>
+                  <p class="text-xs text-gray-500">{{ getUserRoleName() }}</p>
+                </div>
+                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span class="text-blue-600 font-medium text-sm">{{ getUserInitials() }}</span>
+                </div>
+              </div>
+              
+              <button
+                @click="handleLogout"
+                class="flex items-center space-x-1 text-sm text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 py-2 px-3 rounded-lg transition-colors duration-200"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                </svg>
+                <span>Cerrar Sesión</span>
+              </button>
             </div>
-          </div>
-          
-          <!-- Información de usuario y logout -->
-          <div class="flex items-center justify-between sm:justify-end space-x-4">
-            <span class="text-sm text-gray-700 hidden sm:block">Hola, {{ user?.full_name }}</span>
-            
-            <!-- Botón para gestión de usuarios (solo admin) -->
-            <button
-              v-if="user?.role === 'admin'"
-              @click="$router.push('/usuarios')"
-              class="flex items-center space-x-1 text-sm text-[#8557FB] hover:text-[#6B45C8] bg-[#F7F1FF] hover:bg-[#F1E9FF] py-2 px-3 rounded-lg transition-colors duration-200"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
-              </svg>
-              <span>Usuarios</span>
-            </button>
-            
-            <button
-              @click="handleLogout"
-              class="flex items-center space-x-1 text-sm text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 py-2 px-3 rounded-lg transition-colors duration-200 w-full sm:w-auto justify-center"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-              </svg>
-              <span>Cerrar Sesión</span>
-            </button>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <!-- Tabla de inventarios -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        <!-- Header de la tabla reorganizado para móvil -->
-        <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center p-4 border-b border-gray-200 space-y-4 lg:space-y-0">
-          <!-- Título y búsqueda -->
-          <div class="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
-            <h2 class="text-lg font-bold text-gray-900 flex items-center mb-4 sm:mb-0">
-              <svg class="w-5 h-5 text-gray-700 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-              </svg>
-              Inventarios
-            </h2>
-            
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- Tabla de inventarios -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <!-- Header de la tabla -->
+          <div class="flex flex-col lg:flex-row lg:justify-between lg:items-center p-6 border-b border-gray-200 space-y-4 lg:space-y-0">
+            <!-- Título y búsqueda -->
             <div class="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
-              <div class="relative">
+              <div class="relative flex-1 max-w-md">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <svg class="h-4 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                   </svg>
                 </div>
                 <input
                   v-model="searchQuery"
                   type="text"
-                  class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8557FB] focus:border-b[#8557FB] bg-white text-sm w-full"
+                  class="pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm w-full"
                   placeholder="Buscar inventarios..."
                 >
               </div>
@@ -79,223 +66,138 @@
               <button
                 v-if="user?.role === 'admin'"
                 @click="showCreateModal = true"
-                class="bg-[#8557FB] hover:bg-[#6B45C8] text-white py-2 px-4 rounded-lg font-medium transition-colors duration-300 flex items-center space-x-2 justify-center sm:justify-start"
+                class="bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors duration-300 flex items-center space-x-2 justify-center sm:justify-start shadow-md hover:shadow-lg"
               >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
                 </svg>
                 <span>Crear Inventario</span>
               </button>
             </div>
-          </div>
-          
-          <!-- Acciones - reorganizadas para móvil -->
-          <div class="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-2">
-            <!-- Botón de actualizar siempre visible -->
-            <button
-              @click="refreshInventories"
-              class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200 self-start"
-              title="Actualizar"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-              </svg>
-            </button>
             
-            <!-- Acciones para inventario seleccionado -->
-            <template v-if="selectedInventory">
-              <div class="flex flex-wrap gap-2">
-                <!-- Botones principales visibles -->
+            <!-- Acciones -->
+            <div class="flex items-center space-x-2">
+              <!-- Botón de actualizar -->
+              <button
+                @click="refreshInventories"
+                class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                title="Actualizar"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+              </button>
+              
+              <!-- Botón para gestión de usuarios (solo admin) -->
+              <button
+                v-if="user?.role === 'admin'"
+                @click="$router.push('/usuarios')"
+                class="flex items-center space-x-2 text-sm text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 py-2 px-4 rounded-lg transition-colors duration-200"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                </svg>
+                <span>Usuarios</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- AppTable Component -->
+          <AppTable
+            :data="filteredTableData"
+            :headers="tableHeaders"
+            :pageSize="pageSize"
+            :pageCurrent="currentPage"
+            :totalItems="filteredTableData.length"
+            :loading="loading"
+            :showPaginator="true"
+            :multipleSelection="false"
+            :tableSize="'medium'"
+            :stripedRows="true"
+            :selectedRow="selectedInventory"
+            @row-double-click="handleRowDoubleClick"
+          >
+            <!-- Slot para progreso basado en unidades -->
+            <template #custom-progress="{ data }">
+              <div class="flex flex-col items-center">
+                <div class="w-full bg-gray-200 rounded-full h-2.5 mb-1">
+                  <div
+                    class="bg-blue-600 h-2.5 rounded-full transition-all duration-500 ease-out"
+                    :style="{ width: `${calculateUnitProgress(data)}%` }"
+                  ></div>
+                </div>
+                <div class="flex justify-between w-full text-xs">
+                  <span class="text-gray-600">{{ Math.round(calculateUnitProgress(data)) }}%</span>
+                  <span class="text-gray-400">
+                    {{ data.counted_units || 0 }}/{{ data.total_units || 0 }}
+                  </span>
+                </div>
+              </div>
+            </template>
+
+            <!-- Slot para acciones -->
+            <template #custom-actions="{ data }">
+              <div class="flex space-x-2">
                 <button
-                  v-if="user?.role === 'admin' || selectedInventory?.can_edit"
-                  @click="editInventory(selectedInventory)"
-                  class="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                  title="Editar"
-                >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                  </svg>
-                </button>
-                <button
-                  @click="startCounting(selectedInventory)"
-                  class="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors duration-200"
+                  @click="startCounting(data)"
+                  class="text-green-600 hover:text-green-700 p-1 hover:bg-green-50 rounded transition-colors duration-200"
                   title="Iniciar Conteo"
                 >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                   </svg>
                 </button>
-                
-                <!-- Dropdown para acciones secundarias en móvil -->
-                <div class="relative sm:hidden">
-                  <button
-                    @click="toggleMobileActions"
-                    class="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                  >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z"></path>
-                    </svg>
-                  </button>
-                  <!-- Dropdown posicionado a la izquierda para evitar desbordamiento -->
-                  <div 
-                    v-if="showMobileActions" 
-                    class="fixed inset-0 z-50 sm:hidden"
-                    @click="showMobileActions = false"
-                  >
-                    <div class="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-lg border border-gray-200 max-h-60 overflow-y-auto">
-                      <div class="p-4 border-b border-gray-200">
-                        <h3 class="text-lg font-semibold text-gray-900">Acciones</h3>
-                        <p class="text-sm text-gray-600">{{ selectedInventory.name }}</p>
-                      </div>
-                      <div class="p-2">
-                        <button
-                          v-if="user?.role === 'admin' || selectedInventory?.can_upload"
-                          @click="uploadProducts(selectedInventory); showMobileActions = false"
-                          class="flex items-center space-x-3 w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-100 rounded-lg"
-                        >
-                          <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                          </svg>
-                          <span>Cargar Excel</span>
-                        </button>
-                        <button
-                          @click="viewReports(selectedInventory); showMobileActions = false"
-                          class="flex items-center space-x-3 w-full px-4 py-3 text-left text-gray-700 hover:bg-gray-100 rounded-lg"
-                        >
-                          <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                          </svg>
-                          <span>Ver Reportes</span>
-                        </button>
-                        <button
-                          v-if="user?.role === 'admin' || selectedInventory?.can_delete"
-                          @click="deleteInventory(selectedInventory); showMobileActions = false"
-                          class="flex items-center space-x-3 w-full px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-lg"
-                        >
-                          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                          </svg>
-                          <span>Eliminar</span>
-                        </button>
-                      </div>
-                      <div class="p-4 border-t border-gray-200">
-                        <button
-                          @click="showMobileActions = false"
-                          class="w-full bg-gray-500 hover:bg-gray-600 text-white py-2 px-4 rounded-lg transition-colors duration-300"
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <!-- Acciones secundarias visibles en desktop -->
-                <div class="hidden sm:flex sm:space-x-2">
-                  <button
-                    v-if="user?.role === 'admin' || selectedInventory?.can_upload"
-                    @click="uploadProducts(selectedInventory)"
-                    class="p-2 text-green-600 hover:text-green-700 hover:bg-green-50 rounded-lg transition-colors duration-200"
-                    title="Cargar Excel"
-                  >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                    </svg>
-                  </button>
-                  <button
-                    @click="viewReports(selectedInventory)"
-                    class="p-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded-lg transition-colors duration-200"
-                    title="Ver Reportes"
-                  >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                  </button>
-                  <button
-                    v-if="user?.role === 'admin' || selectedInventory?.can_delete"
-                    @click="deleteInventory(selectedInventory)"
-                    class="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors duration-200"
-                    title="Eliminar"
-                  >
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                    </svg>
-                  </button>
-                </div>
-                
                 <button
-                  @click="clearSelection"
-                  class="p-2 text-gray-600 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-200"
-                  title="Cancelar selección"
+                  @click="viewReports(data)"
+                  class="text-purple-600 hover:text-purple-700 p-1 hover:bg-purple-50 rounded transition-colors duration-200"
+                  title="Ver Reportes"
                 >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                  </svg>
+                </button>
+                <button
+                  v-if="user?.role === 'admin' || data?.can_edit"
+                  @click="editInventory(data)"
+                  class="text-blue-600 hover:text-blue-700 p-1 hover:bg-blue-50 rounded transition-colors duration-200"
+                  title="Editar"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                   </svg>
                 </button>
               </div>
             </template>
-          </div>
-        </div>
 
-        <!-- AppTable Component -->
-        <AppTable
-          :data="filteredTableData"
-          :headers="tableHeaders"
-          :pageSize="pageSize"
-          :pageCurrent="currentPage"
-          :totalItems="filteredTableData.length"
-          :loading="loading"
-          :showPaginator="false"
-          :multipleSelection="false"
-          :tableSize="'small'"
-          :stripedRows="true"
-          :selectedRow="selectedInventory"
-          @row-double-click="handleRowDoubleClick"
-        >
-          <!-- Slot para progreso basado en unidades -->
-          <template #custom-progress="{ data }">
-            <div class="flex flex-col items-center">
-              <div class="w-full bg-gray-200 rounded-full h-2 mb-1">
-                <div
-                  class="bg-[#8557FB] h-2 rounded-full transition-all duration-500 ease-out"
-                  :style="{ width: `${calculateUnitProgress(data)}%` }"
-                ></div>
+            <!-- Slot para cuando no hay datos -->
+            <template #empty>
+              <div class="text-center py-12">
+                <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                </svg>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No hay inventarios</h3>
+                <p class="text-gray-500 mb-4">Crea tu primer inventario para comenzar</p>
+                <button
+                  v-if="user?.role === 'admin'"
+                  @click="showCreateModal = true"
+                  class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-300"
+                >
+                  Crear Primer Inventario
+                </button>
               </div>
-              <span class="text-xs text-gray-600">{{ Math.round(calculateUnitProgress(data)) }}%</span>
-              <span class="text-xs text-gray-400">
-                {{ data.counted_units || 0 }}/{{ data.total_units || 0 }} unidades
-              </span>
-            </div>
-          </template>
-
-          <!-- Slot para cuando no hay datos -->
-          <template #empty>
-            <div class="text-center py-12">
-              <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-              </svg>
-              <h3 class="text-lg font-medium text-gray-900 mb-2">No hay inventarios</h3>
-              <p class="text-gray-500 mb-4">Crea tu primer inventario para comenzar</p>
-              <button
-                v-if="user?.role === 'admin'"
-                @click="showCreateModal = true"
-                class="bg-[#8557FB] hover:bg-[#6B45C8] text-white py-2 px-4 rounded-lg font-medium transition-colors duration-300"
-              >
-                Crear Primer Inventario
-              </button>
-            </div>
-          </template>
-        </AppTable>
-      </div>
-    </main>
+            </template>
+          </AppTable>
+        </div>
+      </main>
+    </div>
 
     <!-- Modal de Crear Inventario -->
     <transition name="modal">
       <div v-if="showCreateModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
         <transition name="modal-content">
-          <div class="bg-white rounded-lg p-6 w-full max-w-md">
+          <div class="bg-white rounded-xl p-6 w-full max-w-md">
             <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-              <svg class="w-5 h-5 text-[#8557FB] mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
               </svg>
               Crear Nuevo Inventario
@@ -309,7 +211,7 @@
                     v-model="newInventory.name"
                     type="text"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8557FB] focus:border-[#8557FB] bg-white text-gray-900"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
                     placeholder="Ej: Inventario General"
                     ref="nameInput"
                   >
@@ -319,7 +221,7 @@
                   <textarea
                     v-model="newInventory.description"
                     rows="3"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8557FB] focus:border-[#8557FB] bg-white text-gray-900"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
                     placeholder="Descripción opcional del inventario"
                   ></textarea>
                 </div>
@@ -330,24 +232,24 @@
                     ref="fileInput"
                     accept=".xlsx, .xls"
                     @change="handleFileSelect"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8557FB] focus:border-[#8557FB] bg-white text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#F1E9FF] file:text-[#8557FB] hover:file:bg-[#D7C8FF]"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
                   >
                   <p class="text-xs text-gray-500 mt-1">Archivo Excel con columnas: código de barras, nombre del producto, stock esperado</p>
                 </div>
 
-                <div v-if="selectedFile" class="p-3 bg-[#FBF7FF] border border-[#E9DDFF] rounded-lg">
+                <div v-if="selectedFile" class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-2">
-                      <svg class="w-4 h-4 text-[#8557FB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                       </svg>
-                      <span class="text-sm font-medium text-[#8557FB]">{{ selectedFile.name }}</span>
-                      <span class="text-xs text-[#8557FB]">({{ formatFileSize(selectedFile.size) }})</span>
+                      <span class="text-sm font-medium text-blue-600">{{ selectedFile.name }}</span>
+                      <span class="text-xs text-blue-600">({{ formatFileSize(selectedFile.size) }})</span>
                     </div>
                     <button
                       type="button"
                       @click="clearSelectedFile"
-                      class="text-[#8557FB] hover:text-[#5436A3]"
+                      class="text-blue-600 hover:text-blue-800"
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -361,14 +263,14 @@
                 <button
                   type="button"
                   @click="showCreateModal = false"
-                  class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg transition-colors duration-300"
+                  class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 rounded-lg transition-colors duration-300"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   :disabled="creatingInventory"
-                  class="flex-1 bg-[#8557FB] hover:bg-[#5436A3] disabled:bg-gray-400 text-white py-2 rounded-lg transition-colors duration-300 flex items-center justify-center"
+                  class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-3 rounded-lg transition-colors duration-300 flex items-center justify-center"
                 >
                   <svg v-if="creatingInventory" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -387,7 +289,7 @@
     <transition name="modal">
       <div v-if="showEditModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
         <transition name="modal-content">
-          <div class="bg-white rounded-lg p-6 w-full max-w-md">
+          <div class="bg-white rounded-xl p-6 w-full max-w-md">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">Editar Inventario</h3>
             
             <form @submit.prevent="updateInventory">
@@ -398,7 +300,7 @@
                     v-model="editingInventory.name"
                     type="text"
                     required
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8557FB] focus:border-[#8557FB] bg-white text-gray-900"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
                     placeholder="Nombre del inventario"
                     ref="editNameInput"
                   >
@@ -408,7 +310,7 @@
                   <textarea
                     v-model="editingInventory.description"
                     rows="3"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#8557FB] focus:border-[#8557FB] bg-white text-gray-900"
+                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
                     placeholder="Descripción del inventario"
                   ></textarea>
                 </div>
@@ -418,13 +320,13 @@
                 <button
                   type="button"
                   @click="showEditModal = false"
-                  class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg transition-colors duration-300"
+                  class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 rounded-lg transition-colors duration-300"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  class="flex-1 bg-[#8557FB] hover:bg-[#6B45C8] text-white py-2 rounded-lg transition-colors duration-300"
+                  class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg transition-colors duration-300"
                 >
                   Guardar Cambios
                 </button>
@@ -439,7 +341,7 @@
     <transition name="modal">
       <div v-if="showDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
         <transition name="modal-content">
-          <div class="bg-white rounded-lg p-6 w-full max-w-md">
+          <div class="bg-white rounded-xl p-6 w-full max-w-md">
             <div class="flex items-center space-x-3 mb-4">
               <div class="bg-red-100 p-2 rounded-full">
                 <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -457,13 +359,13 @@
             <div class="flex space-x-3">
               <button
                 @click="showDeleteModal = false"
-                class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg transition-colors duration-300"
+                class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 rounded-lg transition-colors duration-300"
               >
                 Cancelar
               </button>
               <button
                 @click="confirmDelete"
-                class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg transition-colors duration-300"
+                class="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg transition-colors duration-300"
               >
                 Eliminar
               </button>
@@ -481,6 +383,7 @@ import { useRouter } from 'vue-router'
 import { useNotifications } from '@/composables/useNotifications'
 import { apiService } from '@/services/api'
 import AppTable from '@/components/atoms/AppTable.vue'
+import Sidebar from '@/components/Sidebar.vue'
 
 const router = useRouter()
 const { success, error, info } = useNotifications()
@@ -494,7 +397,6 @@ const searchQuery = ref('')
 const showCreateModal = ref(false)
 const showEditModal = ref(false)
 const showDeleteModal = ref(false)
-const showMobileActions = ref(false)
 const editingInventory = ref({ id: null, name: '', description: '' })
 const deletingInventory = ref(null)
 const nameInput = ref(null)
@@ -518,15 +420,15 @@ const newInventory = ref({
 // Configuración de la tabla
 const tableHeaders = ref([
   { field: 'name', header: 'Nombre', width: '200px' },
-  { field: 'description', header: 'Descripción', width: '200px' },
-  { field: 'total_products', header: 'Productos', width: '100px' },
-  { field: 'total_units', header: 'Unidades', width: '100px' },
+  { field: 'description', header: 'Descripción', width: '250px' },
+  { field: 'total_products', header: 'Productos', width: '120px' },
+  { field: 'total_units', header: 'Unidades', width: '120px' },
   { field: 'counted_products', header: 'Productos Contados', width: '160px' },
   { field: 'counted_units', header: 'Unid. Contadas', width: '160px' },
-  { field: 'progress', header: 'Progreso', width: '120px' },
-  { field: 'created_at', header: 'Creado', width: '120px' },
-  { field: 'created_by_name', header: 'Creado por', width: '150px' },
-  { field: 'updated_at', header: 'Última Actualización', width: '150px' }
+  { field: 'progress', header: 'Progreso', width: '180px' },
+  { field: 'created_at', header: 'Creado', width: '140px' },
+  { field: 'created_by_name', header: 'Creado por', width: '160px' },
+  { field: 'actions', header: 'Acciones', width: '100px' }
 ])
 
 // Datos formateados para la tabla
@@ -549,6 +451,26 @@ const filteredTableData = computed(() => {
     inventory.created_by_name?.toLowerCase().includes(query)
   )
 })
+
+// Funciones de utilidad
+const getUserInitials = () => {
+  if (!user.value?.full_name) return 'U'
+  return user.value.full_name
+    .split(' ')
+    .map(word => word[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+}
+
+const getUserRoleName = () => {
+  const roles = {
+    'superadmin': 'Super Administrador',
+    'admin': 'Administrador',
+    'user': 'Usuario'
+  }
+  return roles[user.value?.role] || 'Usuario'
+}
 
 // Función para calcular progreso basado en unidades
 function calculateUnitProgress(inventory) {
@@ -593,17 +515,6 @@ function formatFileSize(bytes) {
 // Manejar doble click
 function handleRowDoubleClick(inventory) {
   selectedInventory.value = inventory
-}
-
-// Limpiar selección
-function clearSelection() {
-  selectedInventory.value = null
-  showMobileActions.value = false
-}
-
-// Toggle acciones móviles
-function toggleMobileActions() {
-  showMobileActions.value = !showMobileActions.value
 }
 
 // Refrescar inventarios
@@ -820,27 +731,5 @@ onMounted(() => {
 .modal-content-leave-to {
   opacity: 0;
   transform: scale(1.1);
-}
-
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.mobile-actions-enter-active,
-.mobile-actions-leave-active {
-  transition: all 0.3s ease;
-}
-
-.mobile-actions-enter-from {
-  opacity: 0;
-  transform: translateY(100%);
-}
-
-.mobile-actions-leave-to {
-  opacity: 0;
-  transform: translateY(100%);
 }
 </style>

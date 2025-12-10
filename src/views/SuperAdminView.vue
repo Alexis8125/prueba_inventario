@@ -1,75 +1,55 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <!-- Header -->
-    <header class="bg-white shadow-sm border-b border-gray-200">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center h-16">
-          <div class="flex items-center space-x-4">
-            <div class="bg-purple-600 text-white p-2 rounded-lg">
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-              </svg>
+    <!-- Sidebar -->
+    <Sidebar :user="user" />
+    
+    <!-- Contenido principal con sidebar -->
+    <div class="pl-0 lg:pl-64 transition-all duration-300">
+      <!-- Header -->
+      <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div class="flex justify-between items-center h-16">
+            <div class="flex items-center">
+              <h1 class="text-xl font-bold text-gray-900">Super Administrador</h1>
+              <span class="ml-3 px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                Panel Global
+              </span>
             </div>
-            <div>
-              <h1 class="text-xl font-bold text-gray-900">Panel de SuperAdministrador</h1>
-              <p class="text-sm text-gray-500">Gestión global del sistema</p>
-            </div>
-          </div>
-          <div class="flex items-center space-x-4">
-            <button
-              @click="showProfileModal = true"
-              class="flex items-center space-x-2 text-gray-700 hover:text-gray-900"
-            >
-              <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                <span class="text-purple-600 font-medium text-sm">{{ userInitials }}</span>
+            
+            <!-- Información de usuario -->
+            <div class="flex items-center space-x-4">
+              <div class="hidden sm:flex items-center space-x-3">
+                <div class="text-right">
+                  <p class="text-sm font-medium text-gray-700">{{ user?.full_name }}</p>
+                  <p class="text-xs text-gray-500">Super Administrador</p>
+                </div>
+                <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <span class="text-blue-600 font-medium text-sm">{{ userInitials }}</span>
+                </div>
               </div>
-              <span class="text-sm">{{ user?.full_name }}</span>
-            </button>
-            <button
-              @click="handleLogout"
-              class="flex items-center space-x-1 text-sm text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 py-2 px-3 rounded-lg transition-colors duration-200"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-              </svg>
-              <span>Cerrar Sesión</span>
-            </button>
+              
+              <button
+                @click="handleLogout"
+                class="flex items-center space-x-1 text-sm text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 py-2 px-3 rounded-lg transition-colors duration-200"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                </svg>
+                <span>Cerrar Sesión</span>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </header>
+      </header>
 
-    <!-- Sidebar y contenido principal -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <div class="flex flex-col lg:flex-row gap-6">
-        <!-- Sidebar -->
-        <div class="lg:w-64 bg-white rounded-lg shadow-sm border border-gray-200 p-4 h-fit">
-          <nav class="space-y-2">
-            <button
-              v-for="tab in tabs"
-              :key="tab.id"
-              @click="activeTab = tab.id"
-              :class="[
-                'w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center space-x-3',
-                activeTab === tab.id
-                  ? 'bg-purple-100 text-purple-700 border border-purple-200'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-              ]"
-            >
-              <component :is="tab.icon" class="w-5 h-5" />
-              <span>{{ tab.name }}</span>
-            </button>
-          </nav>
-        </div>
-
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <!-- Contenido principal -->
-        <div class="flex-1">
+        <div>
           <!-- Resumen general -->
           <div v-if="activeTab === 'dashboard'" class="space-y-6">
             <!-- Estadísticas rápidas -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div class="flex items-center justify-between">
                   <div>
                     <p class="text-sm font-medium text-gray-600">Empresas</p>
@@ -83,7 +63,7 @@
                 </div>
               </div>
 
-              <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div class="flex items-center justify-between">
                   <div>
                     <p class="text-sm font-medium text-gray-600">Usuarios Totales</p>
@@ -97,7 +77,7 @@
                 </div>
               </div>
 
-              <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div class="flex items-center justify-between">
                   <div>
                     <p class="text-sm font-medium text-gray-600">Inventarios</p>
@@ -111,7 +91,7 @@
                 </div>
               </div>
 
-              <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div class="flex items-center justify-between">
                   <div>
                     <p class="text-sm font-medium text-gray-600">Productos Contados</p>
@@ -127,7 +107,7 @@
             </div>
 
             <!-- Actividad reciente -->
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h3 class="text-lg font-semibold text-gray-900 mb-4">Actividad Reciente</h3>
               <div class="space-y-3">
                 <div
@@ -169,7 +149,7 @@
               <h2 class="text-xl font-bold text-gray-900">Gestión de Empresas</h2>
               <button
                 @click="showCreateCompanyModal = true"
-                class="bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-300 flex items-center space-x-2"
+                class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-300 flex items-center space-x-2 shadow-md hover:shadow-lg"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
@@ -178,7 +158,7 @@
               </button>
             </div>
 
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               <AppTable
                 :data="companies"
                 :headers="companyHeaders"
@@ -188,7 +168,7 @@
                 :loading="loading"
                 :showPaginator="true"
                 :multipleSelection="false"
-                :tableSize="'small'"
+                :tableSize="'medium'"
                 :stripedRows="true"
               >
                 <!-- Slot para acciones -->
@@ -196,7 +176,7 @@
                   <div class="flex space-x-2">
                     <button
                       @click="viewCompanyDetails(data)"
-                      class="text-blue-600 hover:text-blue-800 p-1 rounded transition-colors duration-200"
+                      class="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded transition-colors duration-200"
                       title="Ver detalles"
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -217,7 +197,7 @@
                     <p class="text-gray-500 mb-4">Crea la primera empresa para comenzar</p>
                     <button
                       @click="showCreateCompanyModal = true"
-                      class="bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-300"
+                      class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-300"
                     >
                       Crear Primera Empresa
                     </button>
@@ -242,7 +222,7 @@
               </button>
             </div>
 
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               <AppTable
                 :data="auditLogs"
                 :headers="auditHeaders"
@@ -252,7 +232,7 @@
                 :loading="loading"
                 :showPaginator="true"
                 :multipleSelection="false"
-                :tableSize="'small'"
+                :tableSize="'medium'"
                 :stripedRows="true"
               >
                 <!-- Slot para tipo de acción -->
@@ -281,13 +261,13 @@
             </div>
           </div>
         </div>
-      </div>
+      </main>
     </div>
 
     <!-- Modal de Crear Empresa -->
     <transition name="modal">
       <div v-if="showCreateCompanyModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div class="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Crear Nueva Empresa</h3>
           
           <form @submit.prevent="createCompany">
@@ -295,12 +275,12 @@
               <div class="md:col-span-2">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Nombre de la Empresa *</label>
                 <input
-  v-model="companyForm.company_name"
-  type="text"
-  required
-  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
-  placeholder="Nombre de la empresa"
->
+                  v-model="companyForm.company_name"
+                  type="text"
+                  required
+                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
+                  placeholder="Nombre de la empresa"
+                >
               </div>
 
               <div class="md:col-span-2">
@@ -313,7 +293,7 @@
                   v-model="companyForm.admin_full_name"
                   type="text"
                   required
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
+                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
                   placeholder="Nombre del administrador"
                 >
               </div>
@@ -324,7 +304,7 @@
                   v-model="companyForm.admin_username"
                   type="text"
                   required
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
+                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
                   placeholder="Nombre de usuario"
                 >
               </div>
@@ -335,7 +315,7 @@
                   v-model="companyForm.admin_email"
                   type="email"
                   required
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
+                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
                   placeholder="correo@empresa.com"
                 >
               </div>
@@ -346,7 +326,7 @@
                   v-model="companyForm.admin_password"
                   type="password"
                   required
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
+                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
                   placeholder="Contraseña segura"
                 >
               </div>
@@ -358,7 +338,7 @@
                   type="number"
                   min="1"
                   max="50"
-                  class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900"
+                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
                   placeholder="10"
                 >
                 <p class="text-xs text-gray-500 mt-1">Máximo número de usuarios permitidos</p>
@@ -369,14 +349,14 @@
               <button
                 type="button"
                 @click="showCreateCompanyModal = false"
-                class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-2 rounded-lg transition-colors duration-300"
+                class="flex-1 bg-gray-500 hover:bg-gray-600 text-white py-3 rounded-lg transition-colors duration-300"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 :disabled="creatingCompany"
-                class="flex-1 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white py-2 rounded-lg transition-colors duration-300 flex items-center justify-center"
+                class="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-3 rounded-lg transition-colors duration-300 flex items-center justify-center"
               >
                 <svg v-if="creatingCompany" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
                   <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -393,7 +373,7 @@
     <!-- Modal de Detalles de Empresa -->
     <transition name="modal">
       <div v-if="selectedCompany" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div class="bg-white rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
           <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg font-semibold text-gray-900">Detalles de Empresa: {{ selectedCompany.name }}</h3>
             <button @click="selectedCompany = null" class="text-gray-500 hover:text-gray-700">
@@ -496,13 +476,6 @@
         </div>
       </div>
     </transition>
-
-    <!-- Modal de Perfil -->
-    <ProfileModal 
-      v-if="showProfileModal"
-      @close="showProfileModal = false"
-      @updated="handleProfileUpdated"
-    />
   </div>
 </template>
 
@@ -512,7 +485,7 @@ import { useRouter } from 'vue-router'
 import { useNotifications } from '@/composables/useNotifications'
 import { apiService } from '@/services/api'
 import AppTable from '@/components/atoms/AppTable.vue'
-import ProfileModal from '@/components/ProfileModal.vue'
+import Sidebar from '@/components/Sidebar.vue'
 
 const router = useRouter()
 const { success, error } = useNotifications()
@@ -530,29 +503,21 @@ const companyUsers = ref([])
 
 // Estados para modales
 const showCreateCompanyModal = ref(false)
-const showProfileModal = ref(false)
 const selectedCompany = ref(null)
 const creatingCompany = ref(false)
 
 // Paginación
 const currentPage = ref(1)
 
-// Formulario de empresa - CORREGIDO con valores por defecto
+// Formulario de empresa
 const companyForm = ref({
-  company_name: '', // CAMBIADO: era 'name'
+  company_name: '',
   admin_username: '',
   admin_email: '',
   admin_full_name: '',
   admin_password: '',
   user_limit: 10
 })
-
-// Tabs del sidebar
-const tabs = [
-  { id: 'dashboard', name: 'Dashboard', icon: 'DashboardIcon' },
-  { id: 'companies', name: 'Empresas', icon: 'CompanyIcon' },
-  { id: 'audit', name: 'Auditoría', icon: 'AuditIcon' }
-]
 
 // Headers de las tablas
 const companyHeaders = ref([
@@ -586,31 +551,6 @@ const userInitials = computed(() => {
     .toUpperCase()
     .slice(0, 2)
 })
-
-// Iconos para las tabs
-const DashboardIcon = {
-  template: `
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-    </svg>
-  `
-}
-
-const CompanyIcon = {
-  template: `
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-    </svg>
-  `
-}
-
-const AuditIcon = {
-  template: `
-    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-    </svg>
-  `
-}
 
 // Funciones de utilidad
 function formatDate(dateString) {
@@ -679,7 +619,7 @@ async function viewCompanyDetails(company) {
 }
 
 async function createCompany() {
-  // Validación de campos requeridos - CORREGIDO
+  // Validación de campos requeridos
   const requiredFields = [
     'company_name',
     'admin_username', 
@@ -697,13 +637,13 @@ async function createCompany() {
 
   creatingCompany.value = true
   try {
-    console.log('Enviando datos:', companyForm.value) // Para debugging
+    console.log('Enviando datos:', companyForm.value)
     
     await apiService.createCompany(companyForm.value)
     success('Éxito', 'Empresa creada exitosamente')
     showCreateCompanyModal.value = false
     
-    // Resetear formulario - CORREGIDO
+    // Resetear formulario
     companyForm.value = {
       company_name: '',
       admin_username: '',
@@ -723,11 +663,6 @@ async function createCompany() {
   } finally {
     creatingCompany.value = false
   }
-}
-
-function handleProfileUpdated() {
-  user.value = JSON.parse(localStorage.getItem('user') || '{}')
-  success('Éxito', 'Perfil actualizado correctamente')
 }
 
 function handleLogout() {

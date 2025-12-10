@@ -28,6 +28,27 @@ const dbConfig = {
     port: 3306
 };
 
+// Ensure categories table exists (simple migration)
+(async () => {
+    try {
+        const conn = await mysql.createConnection(dbConfig);
+        await conn.execute(`
+            CREATE TABLE IF NOT EXISTS inventory_categories (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                inventory_id INT NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uq_inventory_category (inventory_id, name),
+                FOREIGN KEY (inventory_id) REFERENCES inventories(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB;
+        `);
+        conn.end();
+        console.log('✔ inventory_categories table ensured');
+    } catch (err) {
+        console.error('Error ensuring inventory_categories table:', err.message);
+    }
+})();
+
 // Configuración de Multer
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -1420,9 +1441,22 @@ app.get('/api/inventories/:id/products', authenticateToken, async (req, res) => 
             return res.status(404).json({ error: 'Inventario no encontrado' });
         }
 
+        const inventory = inventories[0];
+
         const [products] = await connection.execute(`
             SELECT 
-                ip.*,
+                ip.id,
+                ip.inventory_id,
+                ip.barcode,
+                ip.sku,
+                ip.product_name AS name,
+                ip.description AS description,
+                ip.category AS category,
+                ip.location AS location,
+                ip.expected_stock AS expected_quantity,
+                ip.counted_stock AS counted_quantity,
+                ip.count_date,
+                ip.counted_by,
                 u.full_name as counted_by_name,
                 CASE 
                     WHEN ip.counted_stock IS NULL OR ip.counted_stock = 0 THEN 'not-counted'
@@ -1448,9 +1482,457 @@ app.get('/api/inventories/:id/products', authenticateToken, async (req, res) => 
         `, [inventoryId]);
 
         connection.end();
-        res.json(products);
+        
+        // Devolver tanto los productos como el nombre del inventario
+        res.json({
+            products: products,
+            inventory_name: inventory.name
+        });
     } catch (error) {
         console.error('Error getting products:', error);
+        res.status(500).json({ error: 'Error del servidor' });
+    }
+});
+
+// Cargar productos desde Excel (devolviendo los datos)
+app.post('/api/inventories/:id/products/upload', authenticateToken, upload.single('file'), async (req, res) => {
+    let connection;
+    try {
+        const inventoryId = req.params.id;
+        const file = req.file;
+
+        if (!file) {
+            return res.status(400).json({ error: 'No se proporcionó archivo' });
+        }
+
+        connection = await mysql.createConnection(dbConfig);
+
+        let query, params;
+
+        if (req.user.role === 'admin') {
+            query = 'SELECT * FROM inventories WHERE id = ? AND company_id = ?';
+            params = [inventoryId, req.user.company_id];
+        } else {
+            query = `
+                SELECT i.* FROM user_inventories ui
+                INNER JOIN inventories i ON ui.inventory_id = i.id
+                WHERE ui.user_id = ? AND i.id = ? AND i.company_id = ?
+            `;
+            params = [req.user.id, inventoryId, req.user.company_id];
+        }
+
+        const [inventories] = await connection.execute(query, params);
+
+        if (inventories.length === 0) {
+            connection.end();
+            return res.status(404).json({ error: 'Inventario no encontrado o sin permisos' });
+        }
+
+        const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const data = XLSX.utils.sheet_to_json(worksheet);
+
+        if (data.length === 0) {
+            connection.end();
+            return res.status(400).json({ error: 'El archivo está vacío' });
+        }
+
+        const columnNames = Object.keys(data[0]);
+
+        const barcodeKey = columnNames.find(key =>
+            key.toLowerCase().includes('barcode') ||
+            key.toLowerCase().includes('codigo') ||
+            key.toLowerCase().includes('código') ||
+            key.toLowerCase().includes('ean') ||
+            key.toLowerCase().includes('upc') ||
+            key.toLowerCase().includes('sku')
+        );
+
+        if (!barcodeKey) {
+            connection.end();
+            return res.status(400).json({
+                error: 'El archivo debe contener una columna de código de barras'
+            });
+        }
+
+        // Detectar las claves de columnas UNA SOLA VEZ fuera del loop
+        const skuKey = columnNames.find(key => key.toLowerCase().includes('sku'));
+        const nameKey = columnNames.find(key =>
+            key.toLowerCase().includes('name') ||
+            key.toLowerCase().includes('nombre') ||
+            key.toLowerCase().includes('producto')
+        );
+        const stockKey = columnNames.find(key =>
+            key.toLowerCase().includes('stock') ||
+            key.toLowerCase().includes('cantidad') ||
+            key.toLowerCase().includes('esperado')
+        );
+        const descriptionKey = columnNames.find(key =>
+            key.toLowerCase().includes('descripción') ||
+            key.toLowerCase().includes('descripcion') ||
+            key.toLowerCase().includes('description')
+        );
+        const categoryKey = columnNames.find(key =>
+            key.toLowerCase().includes('categoría') ||
+            key.toLowerCase().includes('categoria') ||
+            key.toLowerCase().includes('category')
+        );
+        const locationKey = columnNames.find(key =>
+            key.toLowerCase().includes('ubicación') ||
+            key.toLowerCase().includes('ubicacion') ||
+            key.toLowerCase().includes('location')
+        );
+
+        let processed = 0;
+        let errors = 0;
+        const errorsList = [];
+        const uploadedProducts = [];
+
+        for (const [index, row] of data.entries()) {
+            try {
+                const barcode = row[barcodeKey] ? String(row[barcodeKey]).trim() : null;
+
+                if (!barcode) {
+                    errors++;
+                    errorsList.push(`Fila ${index + 2}: Sin código de barras`);
+                    continue;
+                }
+
+                const productName = nameKey && row[nameKey] ? String(row[nameKey]) : `Producto ${barcode}`;
+                const productSku = skuKey && row[skuKey] ? String(row[skuKey]) : null;
+                const productStock = stockKey && row[stockKey] ? parseInt(row[stockKey]) || 0 : 0;
+                const productDescription = descriptionKey && row[descriptionKey] ? String(row[descriptionKey]) : null;
+                const productCategory = categoryKey && row[categoryKey] ? String(row[categoryKey]) : null;
+                const productLocation = locationKey && row[locationKey] ? String(row[locationKey]) : null;
+
+                const [result] = await connection.execute(
+                    `INSERT INTO inventory_products 
+                    (inventory_id, barcode, sku, product_name, expected_stock, description, category, location) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE
+                    sku = VALUES(sku), product_name = VALUES(product_name), expected_stock = VALUES(expected_stock),
+                    description = VALUES(description), category = VALUES(category), location = VALUES(location)`,
+                    [
+                        inventoryId,
+                        barcode,
+                        productSku,
+                        productName,
+                        productStock,
+                        productDescription,
+                        productCategory,
+                        productLocation
+                    ]
+                );
+
+                // Obtener el producto por barcode y inventoryId (más confiable que insertId)
+                const [products] = await connection.execute(
+                    'SELECT * FROM inventory_products WHERE inventory_id = ? AND barcode = ? LIMIT 1',
+                    [inventoryId, barcode]
+                );
+
+                if (products.length > 0) {
+                    uploadedProducts.push(products[0]);
+                }
+
+                processed++;
+            } catch (rowError) {
+                errors++;
+                errorsList.push(`Fila ${index + 2}: ${rowError.message}`);
+                console.error('Error en fila:', rowError);
+            }
+        }
+
+        // Actualizar contador de productos
+        await connection.execute(
+            `UPDATE inventories 
+            SET total_products = (SELECT COUNT(*) FROM inventory_products WHERE inventory_id = ?) 
+            WHERE id = ?`,
+            [inventoryId, inventoryId]
+        );
+
+        connection.end();
+
+        res.json({
+            success: true,
+            message: `Se cargaron ${processed} productos exitosamente`,
+            products: uploadedProducts,
+            processed,
+            errors,
+            totalRows: data.length,
+            errorDetails: errors > 0 ? errorsList.slice(0, 10) : []
+        });
+    } catch (error) {
+        if (connection) connection.end();
+        console.error('Error processing file:', error);
+        res.status(500).json({ error: 'Error procesando archivo: ' + error.message });
+    }
+});
+
+// Agregar producto a un inventario
+app.post('/api/inventories/:id/products', authenticateToken, async (req, res) => {
+    try {
+        const inventoryId = req.params.id;
+        // Aceptar tanto 'name' como 'product_name', 'expected_quantity' como 'expected_stock'
+        const { barcode, sku, name, product_name, expected_quantity, expected_stock, category, description } = req.body;
+        
+        const finalProductName = product_name || name;
+        const finalExpectedStock = expected_stock !== undefined ? expected_stock : (expected_quantity || 0);
+        
+        if (!barcode || !finalProductName) {
+            return res.status(400).json({ error: 'Barcode y product_name son requeridos' });
+        }
+
+        const connection = await mysql.createConnection(dbConfig);
+
+        // Verificar que el usuario tenga acceso al inventario
+        let query, params;
+        if (req.user.role === 'admin') {
+            query = 'SELECT * FROM inventories WHERE id = ? AND company_id = ?';
+            params = [inventoryId, req.user.company_id];
+        } else {
+            query = `
+                SELECT i.* FROM user_inventories ui
+                INNER JOIN inventories i ON ui.inventory_id = i.id
+                WHERE ui.user_id = ? AND i.id = ? AND i.company_id = ?
+            `;
+            params = [req.user.id, inventoryId, req.user.company_id];
+        }
+
+        const [inventories] = await connection.execute(query, params);
+        if (inventories.length === 0) {
+            connection.end();
+            return res.status(403).json({ error: 'No tienes acceso a este inventario' });
+        }
+
+        // Insertar el producto
+        const [result] = await connection.execute(`
+            INSERT INTO inventory_products (inventory_id, barcode, sku, product_name, expected_stock)
+            VALUES (?, ?, ?, ?, ?)
+        `, [inventoryId, barcode, sku || null, finalProductName, finalExpectedStock]);
+
+        // Actualizar contador de productos en el inventario
+        await connection.execute(`
+            UPDATE inventories 
+            SET total_products = total_products + 1 
+            WHERE id = ?
+        `, [inventoryId]);
+
+        const [newProduct] = await connection.execute(`
+            SELECT * FROM inventory_products WHERE id = ?
+        `, [result.insertId]);
+
+        connection.end();
+        
+        res.status(201).json({
+            message: 'Producto agregado exitosamente',
+            product: newProduct[0]
+        });
+    } catch (error) {
+        console.error('Error adding product:', error);
+        res.status(500).json({ error: 'Error del servidor' });
+    }
+});
+
+// Obtener categorías de un inventario
+app.get('/api/inventories/:id/categories', authenticateToken, async (req, res) => {
+    try {
+        const inventoryId = req.params.id;
+        const connection = await mysql.createConnection(dbConfig);
+
+        // Access check (simple: if user has access to inventory)
+        let query, params;
+        if (req.user.role === 'admin') {
+            query = 'SELECT * FROM inventories WHERE id = ? AND company_id = ?';
+            params = [inventoryId, req.user.company_id];
+        } else {
+            query = `
+                SELECT i.* FROM user_inventories ui
+                INNER JOIN inventories i ON ui.inventory_id = i.id
+                WHERE ui.user_id = ? AND i.id = ? AND i.company_id = ?
+            `;
+            params = [req.user.id, inventoryId, req.user.company_id];
+        }
+
+        const [inventories] = await connection.execute(query, params);
+        if (inventories.length === 0) {
+            connection.end();
+            return res.status(403).json({ error: 'No tienes acceso a este inventario' });
+        }
+
+        const [rows] = await connection.execute(
+            'SELECT name FROM inventory_categories WHERE inventory_id = ? ORDER BY name',
+            [inventoryId]
+        );
+        connection.end();
+        res.json(rows.map(r => r.name));
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+        res.status(500).json({ error: 'Error del servidor' });
+    }
+});
+
+// Agregar categoría a un inventario
+app.post('/api/inventories/:id/categories', authenticateToken, async (req, res) => {
+    try {
+        const inventoryId = req.params.id;
+        const { name } = req.body;
+        if (!name || !String(name).trim()) {
+            return res.status(400).json({ error: 'Nombre de categoría inválido' });
+        }
+
+        const connection = await mysql.createConnection(dbConfig);
+
+        // Access check
+        let query, params;
+        if (req.user.role === 'admin') {
+            query = 'SELECT * FROM inventories WHERE id = ? AND company_id = ?';
+            params = [inventoryId, req.user.company_id];
+        } else {
+            query = `
+                SELECT i.* FROM user_inventories ui
+                INNER JOIN inventories i ON ui.inventory_id = i.id
+                WHERE ui.user_id = ? AND i.id = ? AND i.company_id = ?
+            `;
+            params = [req.user.id, inventoryId, req.user.company_id];
+        }
+        const [inventories] = await connection.execute(query, params);
+        if (inventories.length === 0) {
+            connection.end();
+            return res.status(403).json({ error: 'No tienes acceso a este inventario' });
+        }
+
+        // Insert if not exists
+        await connection.execute(
+            'INSERT IGNORE INTO inventory_categories (inventory_id, name) VALUES (?, ?)',
+            [inventoryId, String(name).trim()]
+        );
+
+        const [rows] = await connection.execute(
+            'SELECT name FROM inventory_categories WHERE inventory_id = ? ORDER BY name',
+            [inventoryId]
+        );
+
+        connection.end();
+        res.status(201).json({ success: true, categories: rows.map(r => r.name) });
+    } catch (error) {
+        console.error('Error adding category:', error);
+        res.status(500).json({ error: 'Error del servidor' });
+    }
+});
+
+// Actualizar producto
+app.put('/api/inventories/:inventoryId/products/:productId', authenticateToken, async (req, res) => {
+    try {
+        const { inventoryId, productId } = req.params;
+        const { barcode, sku, name, product_name, expected_quantity, expected_stock } = req.body;
+
+        const finalProductName = product_name || name;
+        const finalExpectedStock = expected_stock !== undefined ? expected_stock : (expected_quantity || 0);
+
+        const connection = await mysql.createConnection(dbConfig);
+
+        // Verificar acceso
+        let query, params;
+        if (req.user.role === 'admin') {
+            query = 'SELECT * FROM inventories WHERE id = ? AND company_id = ?';
+            params = [inventoryId, req.user.company_id];
+        } else {
+            query = `
+                SELECT i.* FROM user_inventories ui
+                INNER JOIN inventories i ON ui.inventory_id = i.id
+                WHERE ui.user_id = ? AND i.id = ? AND i.company_id = ?
+            `;
+            params = [req.user.id, inventoryId, req.user.company_id];
+        }
+
+        const [inventories] = await connection.execute(query, params);
+        if (inventories.length === 0) {
+            connection.end();
+            return res.status(403).json({ error: 'No tienes acceso a este inventario' });
+        }
+
+        // Actualizar producto
+        await connection.execute(`
+            UPDATE inventory_products 
+            SET barcode = ?, sku = ?, product_name = ?, expected_stock = ?
+            WHERE id = ? AND inventory_id = ?
+        `, [barcode, sku || null, finalProductName, finalExpectedStock, productId, inventoryId]);
+
+        const [updatedProduct] = await connection.execute(`
+            SELECT * FROM inventory_products WHERE id = ? AND inventory_id = ?
+        `, [productId, inventoryId]);
+
+        connection.end();
+
+        if (updatedProduct.length === 0) {
+            return res.status(404).json({ error: 'Producto no encontrado' });
+        }
+
+        res.json({
+            message: 'Producto actualizado exitosamente',
+            product: updatedProduct[0]
+        });
+    } catch (error) {
+        console.error('Error updating product:', error);
+        res.status(500).json({ error: 'Error del servidor' });
+    }
+});
+
+// Eliminar producto
+app.delete('/api/inventories/:inventoryId/products/:productId', authenticateToken, async (req, res) => {
+    try {
+        const { inventoryId, productId } = req.params;
+
+        const connection = await mysql.createConnection(dbConfig);
+
+        // Verificar acceso
+        let query, params;
+        if (req.user.role === 'admin') {
+            query = 'SELECT * FROM inventories WHERE id = ? AND company_id = ?';
+            params = [inventoryId, req.user.company_id];
+        } else {
+            query = `
+                SELECT i.* FROM user_inventories ui
+                INNER JOIN inventories i ON ui.inventory_id = i.id
+                WHERE ui.user_id = ? AND i.id = ? AND i.company_id = ?
+            `;
+            params = [req.user.id, inventoryId, req.user.company_id];
+        }
+
+        const [inventories] = await connection.execute(query, params);
+        if (inventories.length === 0) {
+            connection.end();
+            return res.status(403).json({ error: 'No tienes acceso a este inventario' });
+        }
+
+        // Verificar que el producto existe
+        const [products] = await connection.execute(`
+            SELECT * FROM inventory_products WHERE id = ? AND inventory_id = ?
+        `, [productId, inventoryId]);
+
+        if (products.length === 0) {
+            connection.end();
+            return res.status(404).json({ error: 'Producto no encontrado' });
+        }
+
+        // Eliminar el producto
+        await connection.execute(`
+            DELETE FROM inventory_products WHERE id = ? AND inventory_id = ?
+        `, [productId, inventoryId]);
+
+        // Actualizar contador de productos
+        await connection.execute(`
+            UPDATE inventories 
+            SET total_products = GREATEST(0, total_products - 1) 
+            WHERE id = ?
+        `, [inventoryId]);
+
+        connection.end();
+
+        res.json({ message: 'Producto eliminado exitosamente' });
+    } catch (error) {
+        console.error('Error deleting product:', error);
         res.status(500).json({ error: 'Error del servidor' });
     }
 });

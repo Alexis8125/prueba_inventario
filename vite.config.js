@@ -1,19 +1,17 @@
 import { fileURLToPath, URL } from 'node:url'
-
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
-
-// vite.config.js
-import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
-
 export default defineConfig({
-  plugins: [vue()],
+  plugins: [vue(), vueDevTools()],
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url))
+    }
+  },
   server: {
     proxy: {
-      // Redirige todas las peticiones /api a tu servidor Node.js
       '/api': {
         target: 'http://localhost:3000',
         changeOrigin: true,
@@ -22,4 +20,3 @@ export default defineConfig({
     }
   }
 })
-

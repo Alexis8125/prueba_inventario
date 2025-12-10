@@ -42,15 +42,15 @@
         </div>
       </header>
 
-      <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <!-- Tabla de inventarios -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
           <!-- Header de la tabla -->
           <div
-            class="flex flex-col lg:flex-row lg:justify-between lg:items-center p-6 border-b border-gray-200 space-y-4 lg:space-y-0">
+            class="flex flex-col lg:flex-row lg:justify-between lg:items-center p-3 border-b border-gray-200 gap-3">
             <!-- Título y búsqueda -->
-            <div class="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
-              <div class="relative flex-1 max-w-md">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div class="relative flex-1 max-w-xs">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -58,13 +58,13 @@
                   </svg>
                 </div>
                 <input v-model="searchQuery" type="text"
-                  class="pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm w-full"
-                  placeholder="Buscar inventarios...">
+                  class="pl-10 pr-4 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white w-full"
+                  placeholder="Buscar...">
               </div>
 
               <button v-if="user?.role === 'admin'" @click="showCreateModal = true"
-                class="bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors duration-300 flex items-center space-x-2 justify-center sm:justify-start shadow-md hover:shadow-lg">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded text-sm font-medium transition-colors flex items-center gap-2 justify-center sm:justify-start">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6">
                   </path>
                 </svg>
@@ -73,12 +73,12 @@
             </div>
 
             <!-- Acciones -->
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center gap-1.5">
               <!-- Botón de actualizar -->
               <button @click="refreshInventories"
-                class="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                class="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded text-sm transition-colors"
                 title="Actualizar">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
                   </path>
@@ -87,7 +87,7 @@
 
               <!-- Botón para gestión de usuarios (solo admin) -->
               <button v-if="user?.role === 'admin'" @click="$router.push('/usuarios')"
-                class="flex items-center space-x-2 text-sm text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 py-2 px-4 rounded-lg transition-colors duration-200">
+                class="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 py-1.5 px-2.5 rounded text-sm transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z">
@@ -121,9 +121,19 @@
 
             <!-- Slot para acciones -->
             <template #custom-actions="{ data }">
-              <div class="flex space-x-2">
+              <div class="flex gap-1">
+                <button @click="viewProducts(data)"
+                  class="text-blue-600 hover:text-blue-700 p-0.5 hover:bg-blue-50 rounded transition-colors"
+                  title="Ver Productos">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                  </svg>
+                </button>
                 <button @click="startCounting(data)"
-                  class="text-green-600 hover:text-green-700 p-1 hover:bg-green-50 rounded transition-colors duration-200"
+                  class="text-green-600 hover:text-green-700 p-0.5 hover:bg-green-50 rounded transition-colors"
                   title="Iniciar Conteo">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -131,7 +141,7 @@
                   </svg>
                 </button>
                 <button @click="viewReports(data)"
-                  class="text-purple-600 hover:text-purple-700 p-1 hover:bg-purple-50 rounded transition-colors duration-200"
+                  class="text-purple-600 hover:text-purple-700 p-0.5 hover:bg-purple-50 rounded transition-colors"
                   title="Ver Reportes">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -140,11 +150,20 @@
                   </svg>
                 </button>
                 <button v-if="user?.role === 'admin' || data?.can_edit" @click="editInventory(data)"
-                  class="text-blue-600 hover:text-blue-700 p-1 hover:bg-blue-50 rounded transition-colors duration-200"
+                  class="text-yellow-600 hover:text-yellow-700 p-0.5 hover:bg-yellow-50 rounded transition-colors"
                   title="Editar">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z">
+                    </path>
+                  </svg>
+                </button>
+                <button v-if="user?.role === 'admin'" @click="deleteInventory(data)"
+                  class="text-red-600 hover:text-red-700 p-0.5 hover:bg-red-50 rounded transition-colors"
+                  title="Eliminar">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
                     </path>
                   </svg>
                 </button>
@@ -153,8 +172,8 @@
 
             <!-- Slot para cuando no hay datos -->
             <template #empty>
-              <div class="text-center py-12">
-                <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="text-center py-8">
+                <svg class="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                     d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2">
                   </path>
@@ -977,6 +996,10 @@ async function uploadFile(inventoryId, file, overwrite = false) {
       error('Error', err.message || 'Error al cargar el archivo')
     }
   }
+}
+
+function viewProducts(inventory) {
+  router.push(`/inventario/${inventory.id}/productos`)
 }
 
 function startCounting(inventory) {

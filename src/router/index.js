@@ -1,4 +1,3 @@
-// En tu archivo de rutas (router.js)
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '@/views/LoginView.vue'
 import InventoriesView from '@/views/InventoriesView.vue'
@@ -7,11 +6,12 @@ import ReportsView from '@/views/ReportsView.vue'
 import UsersView from '@/views/UsersView.vue'
 import SuperAdminView from '@/views/SuperAdminView.vue'
 import DashboardView from '@/views/DashboardView.vue'
+import ProductsView from '@/views/ProductsView.vue' // Nueva importación
 
 const routes = [
   {
     path: '/',
-    redirect: '/inventarios'
+    redirect: '/inventarios' // O '/dashboard' si prefieres
   },
   {
     path: '/login',
@@ -21,12 +21,19 @@ const routes = [
   {
     path: '/dashboard',
     name: 'dashboard',
-    component: DashboardView
+    component: DashboardView,
+    meta: { requiresAuth: true }
   },
   {
     path: '/inventarios',
     name: 'inventarios',
     component: InventoriesView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/inventario/:id/productos',
+    name: 'products',
+    component: ProductsView,
     meta: { requiresAuth: true }
   },
   {
@@ -52,6 +59,11 @@ const routes = [
     name: 'superadmin',
     component: SuperAdminView,
     meta: { requiresAuth: true, requiresSuperAdmin: true }
+  },
+  // Redirecciones para mantener compatibilidad
+  {
+    path: '/inventory/:id/products',
+    redirect: to => ({ path: `/inventario/${to.params.id}/productos` })
   }
 ]
 
@@ -60,18 +72,42 @@ const router = createRouter({
   routes
 })
 
-// Guard de navegación
+// Guard de navegación mejorado
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token')
   const user = JSON.parse(localStorage.getItem('user') || '{}')
 
+  // Si la ruta requiere autenticación y no hay token
   if (to.meta.requiresAuth && !token) {
     next('/login')
-  } else if (to.meta.requiresAdmin && user.role !== 'admin') {
-    next('/inventarios')
-  } else {
-    next()
+    return
   }
+
+  // Si ya está autenticado y trata de ir al login
+  if (to.name === 'login' && token) {
+    next('/inventarios')
+    return
+  }
+
+  // Verificar permisos de administrador
+  if (to.meta.requiresAdmin && user.role !== 'admin' && user.role !== 'superadmin') {
+    next('/inventarios')
+    return
+  }
+
+  // Verificar permisos de super administrador
+  if (to.meta.requiresSuperAdmin && user.role !== 'superadmin') {
+    next('/inventarios')
+    return
+  }
+
+  // Continuar a la ruta
+  next()
+})
+
+// Manejo de errores de navegación
+router.onError((error) => {
+  console.error('Router error:', error)
 })
 
 export default router

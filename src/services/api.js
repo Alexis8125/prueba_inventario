@@ -13,7 +13,7 @@ class ApiService {
 
     const config = {
       headers: {
-        'Content-Type': 'application/json',
+        ...(!options.body || !(options.body instanceof FormData) && { 'Content-Type': 'application/json' }),
         ...options.headers,
       },
       ...options
@@ -49,6 +49,38 @@ class ApiService {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
     window.location.href = '/login'
+  }
+
+  // === MÉTODOS GENÉRICOS HTTP ===
+  async get(endpoint, options = {}) {
+    return this.request(endpoint, {
+      ...options,
+      method: 'GET'
+    })
+  }
+
+  async post(endpoint, data = {}, options = {}) {
+    const isFormData = data instanceof FormData
+    return this.request(endpoint, {
+      ...options,
+      method: 'POST',
+      body: isFormData ? data : JSON.stringify(data)
+    })
+  }
+
+  async put(endpoint, data = {}, options = {}) {
+    return this.request(endpoint, {
+      ...options,
+      method: 'PUT',
+      body: JSON.stringify(data)
+    })
+  }
+
+  async delete(endpoint, options = {}) {
+    return this.request(endpoint, {
+      ...options,
+      method: 'DELETE'
+    })
   }
 
   // === MÉTODOS DE AUTENTICACIÓN ===

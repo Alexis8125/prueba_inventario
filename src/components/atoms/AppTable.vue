@@ -50,14 +50,14 @@
                 class="!border-0"
                 v-if="multipleSelection"
               ></Column>
-              
-              <!-- Columnas dinámicas SIN ACCIONES -->
+
+              <!-- Columnas dinámicas -->
               <Column
                 class="!border-0"
                 v-for="col in headers"
                 :key="col.field"
                 :field="col.field"
-                :sortable="true"
+                :sortable="col.field !== 'actions'"
                 :style="
                   col.width ? { width: col.width, minWidth: col.width, maxWidth: col.width } : {}
                 "
@@ -72,30 +72,99 @@
                   </div>
                 </template>
 
-                <template #body="{ data }">
+                <template #body="{ data: rowData }">
                   <div
                     class="flex justify-center font-medium items-center text-sm text-neutral-500 dark:text-neutral-400"
                   >
-                    <slot
-                      v-if="$slots[`custom-${col.field}`]"
-                      :name="`custom-${col.field}`"
-                      :data="data"
-                    >
-                      {{ data[col.field] }}
-                    </slot>
+                    <!-- Slot para columna de acciones -->
+                    <div v-if="col.field === 'actions'">
+                      <slot name="custom-actions" :data="rowData">
+                        <!-- Botones de acción por defecto -->
+                        <div class="flex space-x-1">
+                          <button
+                            @click.stop="$emit('row-action', { type: 'view', data: rowData })"
+                            class="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded"
+                            title="Ver"
+                          >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                          </button>
+                          <button
+                            @click.stop="$emit('row-action', { type: 'edit', data: rowData })"
+                            class="text-green-600 hover:text-green-800 p-1 hover:bg-green-50 rounded"
+                            title="Editar"
+                          >
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                            </svg>
+                          </button>
+                        </div>
+                      </slot>
+                    </div>
 
-                    <template v-else-if="isDateField(col.field) && data[col.field]">
+                    <!-- Slot personalizado para otras columnas -->
+                    <template v-else-if="$slots[`custom-${col.field}`]">
+                      <slot
+                        :name="`custom-${col.field}`"
+                        :data="rowData"
+                      >
+                        {{ rowData[col.field] }}
+                      </slot>
+                    </template>
+
+                    <!-- Formato de fecha -->
+                    <template v-else-if="isDateField(col.field) && rowData[col.field]">
                       <span>
-                        {{ formatDate(data[col.field] as string, col.field) }}
+                        {{ formatDate(rowData[col.field] as string, col.field) }}
                       </span>
                     </template>
 
+                    <!-- Valor por defecto -->
                     <template v-else>
-                      <span class="truncate max-w-[200px]" :title="String(data[col.field] || '')">
-                        {{ data[col.field] || '-' }}
+                      <span class="truncate max-w-[200px]" :title="String(rowData[col.field] || '')">
+                        {{ rowData[col.field] || '-' }}
                       </span>
                     </template>
                   </div>
+                </template>
+              </Column>
+
+              <!-- Columna de acciones alternativa (si no está en headers) -->
+              <Column
+                v-if="!headers.find(h => h.field === 'actions')"
+                field="actions"
+                header="Acciones"
+                headerStyle="width: 120px"
+                bodyStyle="text-align: center; padding: 0.5rem;"
+                class="!border-0"
+              >
+                <template #body="{ data: rowData }">
+                  <slot name="custom-actions" :data="rowData">
+                    <!-- Botones de acción por defecto -->
+                    <div class="flex space-x-1">
+                      <button
+                        @click.stop="$emit('row-action', { type: 'view', data: rowData })"
+                        class="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded"
+                        title="Ver"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                      </button>
+                      <button
+                        @click.stop="$emit('row-action', { type: 'edit', data: rowData })"
+                        class="text-green-600 hover:text-green-800 p-1 hover:bg-green-50 rounded"
+                        title="Editar"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                      </button>
+                    </div>
+                  </slot>
                 </template>
               </Column>
 
@@ -132,27 +201,27 @@
 
               <div v-else class="mobile-list space-y-4 p-4">
                 <div
-                  v-for="inventory in data"
-                  :key="inventory.id"
-                  class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow duration-200"
-                  :class="{ 'bg-blue-50 border-blue-300 border-l-4': isSelected(inventory) }"
-                  @click="toggleSelection(inventory)"
-                  @dblclick="handleRowDoubleClick({ data: inventory })"
+                  v-for="(item, index) in data"
+                  :key="(item.id as string | number) || `item-${index}`"
+                  class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow duration-200 mobile-item"
+                  :class="{ 'selected': isSelected(item, index) }"
+                  @click="toggleSelection(item, index)"
+                  @dblclick="handleRowDoubleClick({ data: item })"
                 >
                   <!-- Header con título y estado -->
                   <div class="flex justify-between items-start mb-3">
                     <div class="flex-1">
                       <div class="flex items-center justify-between mb-2">
-                        <h3 class="text-lg font-semibold text-gray-900">{{ inventory.name }}</h3>
+                        <h3 class="text-lg font-semibold text-gray-900">{{ item.name || 'Sin nombre' }}</h3>
                         <span 
                           class="text-xs px-2 py-1 rounded-full"
-                          :class="getStatusClass(inventory)"
+                          :class="getStatusClass(item)"
                         >
-                          {{ getStatusText(inventory) }}
+                          {{ getStatusText(item) }}
                         </span>
                       </div>
                       
-                      <p class="text-sm text-gray-600 mb-2 line-clamp-2">{{ inventory.description || 'Sin descripción' }}</p>
+                      <p class="text-sm text-gray-600 mb-2 line-clamp-2">{{ item.description || 'Sin descripción' }}</p>
                       
                       <!-- Información rápida -->
                       <div class="grid grid-cols-2 gap-2 text-xs text-gray-500 mb-3">
@@ -160,25 +229,25 @@
                           <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                           </svg>
-                          Productos: {{ inventory.total_products || 0 }}
+                          Productos: {{ item.total_products || 0 }}
                         </div>
                         <div class="flex items-center">
                           <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                           </svg>
-                          Contados: {{ inventory.counted_products || 0 }}
+                          Contados: {{ item.counted_products || 0 }}
                         </div>
                         <div class="flex items-center">
                           <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                           </svg>
-                          Unidades: {{ inventory.total_units || 0 }}
+                          Unidades: {{ item.total_units || 0 }}
                         </div>
                         <div class="flex items-center">
                           <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                           </svg>
-                          Contadas: {{ inventory.counted_units || 0 }}
+                          Contadas: {{ item.counted_units || 0 }}
                         </div>
                       </div>
                     </div>
@@ -188,12 +257,12 @@
                   <div class="mt-3 mb-3">
                     <div class="flex justify-between text-xs text-gray-600 mb-1">
                       <span>Progreso</span>
-                      <span class="font-medium">{{ Math.round(calculateProgress(inventory)) }}%</span>
+                      <span class="font-medium">{{ Math.round(calculateProgress(item)) }}%</span>
                     </div>
                     <div class="w-full bg-gray-200 rounded-full h-2">
                       <div
                         class="bg-blue-600 h-2 rounded-full transition-all duration-500 ease-out"
-                        :style="{ width: `${calculateProgress(inventory)}%` }"
+                        :style="{ width: `${calculateProgress(item)}%` }"
                       ></div>
                     </div>
                   </div>
@@ -201,20 +270,23 @@
                   <!-- Acciones rápidas en móvil -->
                   <div class="flex justify-between items-center pt-3 border-t border-gray-100">
                     <span class="text-xs text-gray-500">
-                      Creado: {{ formatDate(inventory.created_at as string, 'created_at') }}
+                      Creado: {{ item.created_at ? formatDate(item.created_at as string, 'created_at') : 'N/A' }}
                     </span>
                     <div class="flex space-x-2">
-                      <button
-                        @click.stop="$emit('row-double-click', inventory)"
-                        class="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors"
-                      >
-                        Abrir
-                      </button>
+                      <!-- Slot para acciones en móvil -->
+                      <slot name="mobile-actions" :data="item">
+                        <button
+                          @click.stop="$emit('row-action', { type: 'view', data: item })"
+                          class="text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors"
+                        >
+                          Abrir
+                        </button>
+                      </slot>
                     </div>
                   </div>
 
                   <!-- Indicador de selección -->
-                  <div v-if="isSelected(inventory)" class="mt-2 text-xs text-blue-600 font-medium flex items-center">
+                  <div v-if="isSelected(item, index)" class="mt-2 text-xs text-blue-600 font-medium flex items-center">
                     <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                     </svg>
@@ -224,27 +296,29 @@
               </div>
             </div>
           </div>
-        </div>
-        <div
-          v-if="showPaginator"
-          class="flex flex-col md:flex-row md:justify-between items-center mt-4 gap-2 md:gap-0"
-        >
-          <small class="text-sm text-center md:text-left">
-            <span class="text-base font-semibold">
-              {{ totalItems }}
-            </span>
-            {{ textTotalItems }}
-          </small>
 
-          <Paginator
-            v-show="totalItems > 0"
-            :rows="pageSize"
-            :rowsPerPageOptions="rowSizes"
-            :totalRecords="totalItems"
-            :template="paginatorTemplate"
-            :class="paginatorClasses"
-            @page="handlePageChange"
-          />
+          <!-- Paginador -->
+          <div
+            v-if="showPaginator"
+            class="flex flex-col md:flex-row md:justify-between items-center mt-4 gap-2 md:gap-0"
+          >
+            <small class="text-sm text-center md:text-left">
+              <span class="text-base font-semibold">
+                {{ totalItems }}
+              </span>
+              {{ textTotalItems }}
+            </small>
+
+            <Paginator
+              v-show="totalItems > 0"
+              :rows="pageSize"
+              :rowsPerPageOptions="rowSizes"
+              :totalRecords="totalItems"
+              :template="paginatorTemplate"
+              :class="paginatorClasses"
+              @page="handlePageChange"
+            />
+          </div>
         </div>
       </template>
     </Card>
@@ -260,7 +334,15 @@ import ContextMenu from 'primevue/contextmenu'
 import DataTable from 'primevue/datatable'
 import Paginator from 'primevue/paginator'
 
-import type { TableHeader } from './types/table-header.type'
+// INTERFAZ LOCAL (solución temporal)
+export interface TableHeader {
+  field: string
+  header: string
+  width?: string
+  sortable?: boolean
+  filterable?: boolean
+  dataType?: 'string' | 'number' | 'date' | 'boolean' | 'actions'
+}
 
 export interface DateFormatConfig {
   field: string
@@ -351,6 +433,7 @@ const emit = defineEmits<{
   'selection-change': [selection: Record<string, unknown> | Record<string, unknown>[] | null]
   'page-change': [event: { pageSize: number; limitSize: number }]
   'row-double-click': [row: Record<string, unknown>]
+  'row-action': [action: { type: string; data: Record<string, unknown> }]
   'row-select': [event: { originalEvent: Event; data: Record<string, unknown>; index: number }]
   'row-unselect': [event: { originalEvent: Event; data: Record<string, unknown>; index: number }]
   'row-select-all': [event: { originalEvent: Event; data: Record<string, unknown>[] }]
@@ -395,7 +478,17 @@ const menuModel = ref([
     icon: 'pi pi-fw pi-eye',
     command: () => {
       if (selectedRow.value && !Array.isArray(selectedRow.value)) {
-        // No hacemos nada aquí, las acciones están en el header
+        emit('row-action', { type: 'view', data: selectedRow.value })
+      }
+    },
+    class: 'text-xs',
+  },
+  {
+    label: 'Editar',
+    icon: 'pi pi-fw pi-pencil',
+    command: () => {
+      if (selectedRow.value && !Array.isArray(selectedRow.value)) {
+        emit('row-action', { type: 'edit', data: selectedRow.value })
       }
     },
     class: 'text-xs',
@@ -530,18 +623,30 @@ const getStatusText = (inventory: Record<string, unknown>): string => {
 }
 
 // Función para verificar si un item está seleccionado (para vista móvil)
-const isSelected = (item: Record<string, unknown>): boolean => {
+const isSelected = (item: Record<string, unknown>, index: number): boolean => {
   if (!selectedRow.value) return false
   
   if (Array.isArray(selectedRow.value)) {
-    return selectedRow.value.some(selected => selected.id === item.id)
+    // Para selección múltiple, usamos el índice como fallback
+    return selectedRow.value.some((selected, selectedIndex) => {
+      if (selected.id && item.id) {
+        return selected.id === item.id
+      }
+      // Si no hay ID, comparamos por índice
+      return selectedIndex === index
+    })
   } else {
-    return selectedRow.value?.id === item.id
+    // Para selección única
+    if (selectedRow.value?.id && item.id) {
+      return selectedRow.value.id === item.id
+    }
+    // Fallback: comparación por referencia
+    return selectedRow.value === item
   }
 }
 
 // Alternar selección en vista móvil
-const toggleSelection = (item: Record<string, unknown>) => {
+const toggleSelection = (item: Record<string, unknown>, index: number) => {
   if (!props.multipleSelection) {
     selectedRow.value = item
     return
@@ -550,9 +655,17 @@ const toggleSelection = (item: Record<string, unknown>) => {
   let newSelection: Record<string, unknown>[] = []
   const currentSelection = Array.isArray(selectedRow.value) ? selectedRow.value : []
 
-  if (isSelected(item)) {
-    newSelection = currentSelection.filter(selected => selected.id !== item.id)
+  if (isSelected(item, index)) {
+    // Remover de la selección
+    newSelection = currentSelection.filter((selected, selectedIndex) => {
+      if (selected.id && item.id) {
+        return selected.id !== item.id
+      }
+      // Si no hay ID, comparamos por índice
+      return selectedIndex !== index
+    })
   } else {
+    // Agregar a la selección
     newSelection = [...currentSelection, item]
   }
 
@@ -686,5 +799,24 @@ const tableContentClasses = computed(() => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+// Fix para los símbolos extraños en los headers
+:deep(.p-datatable-thead th) {
+  text-transform: uppercase;
+  font-weight: 600;
+  color: #4b5563; // gray-600
+  background-color: #f9fafb; // gray-50
+  border-bottom: 1px solid #e5e7eb; // gray-200
+  
+  span {
+    font-size: 0.75rem; // text-xs
+    letter-spacing: 0.05em;
+  }
+}
+
+// Asegurar que el texto en las celdas no tenga caracteres extraños
+:deep(.p-datatable-tbody td) {
+  font-family: system-ui, -apple-system, sans-serif;
 }
 </style>

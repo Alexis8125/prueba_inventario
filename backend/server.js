@@ -28,13 +28,32 @@ const dbConfig = {
     port: 3306
 };
 
+// Ensure categories table exists (simple migration)
+(async () => {
+    try {
+        const conn = await mysql.createConnection(dbConfig);
+        await conn.execute(`
+            CREATE TABLE IF NOT EXISTS inventory_categories (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                inventory_id INT NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uq_inventory_category (inventory_id, name),
+                FOREIGN KEY (inventory_id) REFERENCES inventories(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB;
+        `);
+        conn.end();
+        console.log('✔ inventory_categories table ensured');
+    } catch (err) {
+        console.error('Error ensuring inventory_categories table:', err.message);
+    }
+})();
+
 // Configuración de Multer
 const storage = multer.memoryStorage();
-const upload = multer({ 
+const upload = multer({
     storage: storage,
-    limits: {
-        fileSize: 10 * 1024 * 1024
-    }
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB max
 });
 
 // Middleware de autenticación MEJORADO para superadmin
@@ -49,7 +68,7 @@ const authenticateToken = async (req, res, next) => {
 
         const decoded = jwt.verify(token, 'your-secret-key');
         const connection = await mysql.createConnection(dbConfig);
-        
+
         const [users] = await connection.execute(
             `SELECT u.*, c.name as company_name, c.user_limit 
              FROM users u 
@@ -57,7 +76,7 @@ const authenticateToken = async (req, res, next) => {
              WHERE u.id = ? AND u.is_active = TRUE`,
             [decoded.userId]
         );
-        
+
         connection.end();
 
         if (users.length === 0) {
@@ -85,8 +104,8 @@ const requireSuperAdmin = (req, res, next) => {
 // ==============================================
 
 const EMAIL_CONFIG = {
-  user: 'ingalexisarenas@gmail.com',
-  pass: 'agef ie dd nbqi xnbm'.replace(/\s+/g, '')  // Contraseña SIN espacios
+    user: 'ingalexisarenas@gmail.com',
+    pass: 'agef ie dd nbqi xnbm'.replace(/\s+/g, '')  // Contraseña SIN espacios
 };
 
 console.log('🔐 Configuración de email cargada:');
@@ -94,98 +113,806 @@ console.log('   Usuario:', EMAIL_CONFIG.user);
 console.log('   Contraseña (limpia):', '*'.repeat(EMAIL_CONFIG.pass.length) + ` (${EMAIL_CONFIG.pass.length} caracteres)`);
 
 const createTransporter = () => {
-  try {
-    console.log('🔄 Creando transporte de email REAL...');
-    
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: EMAIL_CONFIG.user,
-        pass: EMAIL_CONFIG.pass
-      },
-      debug: true,
-      logger: false
-    });
+    try {
+        console.log('🔄 Creando transporte de email REAL...');
 
-    // Verificar conexión inmediatamente
-    transporter.verify(function(error, success) {
-      if (error) {
-        console.log('❌ Error verificando conexión con Gmail:', error.message);
-        console.log('💡 Posibles soluciones:');
-        console.log('   1. Verifica que la contraseña sea CORRECTA (sin espacios)');
-        console.log('   2. Asegúrate de usar "Contraseña de aplicación" de Google');
-        console.log('   3. Revisa que la verificación en 2 pasos esté ACTIVADA');
-        console.log('   4. Genera una NUEVA contraseña si es necesario');
-      } else {
-        console.log('✅ ✅ ✅ CONEXIÓN CON GMAIL ESTABLECIDA ✅ ✅ ✅');
-        console.log('📧 Listo para enviar emails REALES');
-      }
-    });
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: EMAIL_CONFIG.user,
+                pass: EMAIL_CONFIG.pass
+            },
+            debug: true,
+            logger: false
+        });
 
-    return transporter;
-    
-  } catch (error) {
-    console.error('❌ Error crítico creando transporter:', error.message);
-    return null;
-  }
+        // Verificar conexión inmediatamente
+        transporter.verify(function (error, success) {
+            if (error) {
+                console.log('❌ Error verificando conexión con Gmail:', error.message);
+                console.log('💡 Posibles soluciones:');
+                console.log('   1. Verifica que la contraseña sea CORRECTA (sin espacios)');
+                console.log('   2. Asegúrate de usar "Contraseña de aplicación" de Google');
+                console.log('   3. Revisa que la verificación en 2 pasos esté ACTIVADA');
+                console.log('   4. Genera una NUEVA contraseña si es necesario');
+            } else {
+                console.log('✅ ✅ ✅ CONEXIÓN CON GMAIL ESTABLECIDA ✅ ✅ ✅');
+                console.log('📧 Listo para enviar emails REALES');
+            }
+        });
+
+        return transporter;
+
+    } catch (error) {
+        console.error('❌ Error crítico creando transporter:', error.message);
+        return null;
+    }
 };
 
 const emailTransporter = createTransporter();
 
 // Función para enviar emails
 const sendEmail = async (mailOptions) => {
-  console.log('\n📧 === INICIANDO ENVÍO DE EMAIL ===');
-  console.log('   Para:', mailOptions.to);
-  console.log('   Asunto:', mailOptions.subject);
-  
-  if (!emailTransporter) {
-    console.log('❌ No hay transporte de email disponible');
-    console.log('📧 === ENVÍO CANCELADO ===\n');
-    return { success: false, error: 'Transporte no disponible' };
-  }
+    console.log('\n📧 === INICIANDO ENVÍO DE EMAIL ===');
+    console.log('   Para:', mailOptions.to);
+    console.log('   Asunto:', mailOptions.subject);
 
-  try {
-    console.log('🚀 Enviando email REAL...');
-    
-    const result = await emailTransporter.sendMail({
-      from: 'Sistema de Inventario <ingalexisarenas@gmail.com>',
-      ...mailOptions
-    });
-    
-    console.log('✅ ✅ ✅ EMAIL REAL ENVIADO EXITOSAMENTE ✅ ✅ ✅');
-    console.log('   ID del mensaje:', result.messageId);
-    console.log('   Respuesta:', result.response);
-    console.log('📧 === EMAIL ENVIADO ===\n');
-    
-    return { 
-      success: true, 
-      messageId: result.messageId,
-      response: result.response,
-      real: true
-    };
-    
-  } catch (error) {
-    console.error('❌ ❌ ❌ ERROR ENVIANDO EMAIL REAL:');
-    console.error('   Código:', error.code);
-    console.error('   Mensaje:', error.message);
-    
-    if (error.code === 'EAUTH') {
-      console.log('\n💡 PROBLEMA DE AUTENTICACIÓN:');
-      console.log('   1. Verifica que usaste CONTRASEÑA DE APLICACIÓN (16 caracteres)');
-      console.log('   2. NO uses tu contraseña normal de Gmail');
-      console.log('   3. Asegúrate de que la verificación en 2 pasos esté ACTIVADA');
-      console.log('   4. Genera una NUEVA contraseña en: https://myaccount.google.com/apppasswords');
+    if (!emailTransporter) {
+        console.log('❌ No hay transporte de email disponible');
+        console.log('📧 === ENVÍO CANCELADO ===\n');
+        return { success: false, error: 'Transporte no disponible' };
     }
-    
-    if (error.code === 'EENVELOPE') {
-      console.log('\n💡 PROBLEMA CON EL DESTINATARIO:');
-      console.log('   Verifica que el email del destinatario sea válido');
+
+    try {
+        console.log('🚀 Enviando email REAL...');
+
+        const result = await emailTransporter.sendMail({
+            from: 'Sistema de Inventario <ingalexisarenas@gmail.com>',
+            ...mailOptions
+        });
+
+        console.log('✅ ✅ ✅ EMAIL REAL ENVIADO EXITOSAMENTE ✅ ✅ ✅');
+        console.log('   ID del mensaje:', result.messageId);
+        console.log('   Respuesta:', result.response);
+        console.log('📧 === EMAIL ENVIADO ===\n');
+
+        return {
+            success: true,
+            messageId: result.messageId,
+            response: result.response,
+            real: true
+        };
+
+    } catch (error) {
+        console.error('❌ ❌ ❌ ERROR ENVIANDO EMAIL REAL:');
+        console.error('   Código:', error.code);
+        console.error('   Mensaje:', error.message);
+
+        if (error.code === 'EAUTH') {
+            console.log('\n💡 PROBLEMA DE AUTENTICACIÓN:');
+            console.log('   1. Verifica que usaste CONTRASEÑA DE APLICACIÓN (16 caracteres)');
+            console.log('   2. NO uses tu contraseña normal de Gmail');
+            console.log('   3. Asegúrate de que la verificación en 2 pasos esté ACTIVADA');
+            console.log('   4. Genera una NUEVA contraseña en: https://myaccount.google.com/apppasswords');
+        }
+
+        if (error.code === 'EENVELOPE') {
+            console.log('\n💡 PROBLEMA CON EL DESTINATARIO:');
+            console.log('   Verifica que el email del destinatario sea válido');
+        }
+
+        console.log('📧 === ERROR EN ENVÍO ===\n');
+        throw error;
     }
-    
-    console.log('📧 === ERROR EN ENVÍO ===\n');
-    throw error;
-  }
 };
+
+// ==============================================
+// 🛒 MÓDULO DE VENTAS (AHORA ANTES DE app.listen())
+// ==============================================
+
+// Función para generar número de factura
+const generateInvoiceNumber = (companyId) => {
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    return `FACT-${companyId}-${year}${month}${day}-${random}`;
+};
+
+// Obtener productos disponibles para venta (con stock > 0)
+app.get('/api/sales/products', authenticateToken, async (req, res) => {
+    try {
+        const connection = await mysql.createConnection(dbConfig);
+
+        const [products] = await connection.execute(`
+            SELECT 
+                ip.id,
+                ip.barcode,
+                ip.sku,
+                ip.product_name as name,
+                ip.description,
+                ip.expected_stock as current_stock,
+                ip.category,
+                ip.location,
+                i.name as inventory_name
+            FROM inventory_products ip
+            INNER JOIN inventories i ON ip.inventory_id = i.id
+            WHERE i.company_id = ? 
+            AND ip.expected_stock > 0
+            ORDER BY ip.product_name
+        `, [req.user.company_id]);
+
+        connection.end();
+        res.json(products);
+    } catch (error) {
+        console.error('Error getting products for sale:', error);
+        res.status(500).json({ error: 'Error del servidor' });
+    }
+});
+
+// Buscar producto por código para venta
+app.get('/api/sales/products/search', authenticateToken, async (req, res) => {
+    try {
+        const { barcode, search } = req.query;
+        const connection = await mysql.createConnection(dbConfig);
+
+        let query, params;
+
+        if (barcode) {
+            // Búsqueda por código de barras exacto
+            query = `
+                SELECT 
+                    ip.id,
+                    ip.barcode,
+                    ip.sku,
+                    ip.product_name as name,
+                    ip.description,
+                    ip.expected_stock as current_stock,
+                    ip.category,
+                    ip.location,
+                    i.name as inventory_name
+                FROM inventory_products ip
+                INNER JOIN inventories i ON ip.inventory_id = i.id
+                WHERE i.company_id = ? 
+                AND ip.barcode = ?
+                AND ip.expected_stock > 0
+                LIMIT 1
+            `;
+            params = [req.user.company_id, barcode];
+        } else if (search) {
+            // Búsqueda por nombre o SKU
+            query = `
+                SELECT 
+                    ip.id,
+                    ip.barcode,
+                    ip.sku,
+                    ip.product_name as name,
+                    ip.description,
+                    ip.expected_stock as current_stock,
+                    ip.category,
+                    ip.location,
+                    i.name as inventory_name
+                FROM inventory_products ip
+                INNER JOIN inventories i ON ip.inventory_id = i.id
+                WHERE i.company_id = ? 
+                AND (ip.product_name LIKE ? OR ip.barcode LIKE ? OR ip.sku LIKE ?)
+                AND ip.expected_stock > 0
+                LIMIT 10
+            `;
+            params = [req.user.company_id, `%${search}%`, `%${search}%`, `%${search}%`];
+        } else {
+            connection.end();
+            return res.status(400).json({ error: 'Parámetro de búsqueda requerido' });
+        }
+
+        const [products] = await connection.execute(query, params);
+        connection.end();
+
+        res.json(products);
+    } catch (error) {
+        console.error('Error searching product:', error);
+        res.status(500).json({ error: 'Error del servidor' });
+    }
+});
+
+// Obtener historial de ventas
+app.get('/api/sales', authenticateToken, async (req, res) => {
+    try {
+        const { startDate, endDate, limit = 50 } = req.query;
+        const connection = await mysql.createConnection(dbConfig);
+
+        let query = `
+            SELECT 
+                s.*,
+                u.full_name as created_by_name,
+                COUNT(si.id) as total_items,
+                SUM(si.quantity) as total_quantity
+            FROM sales s
+            LEFT JOIN users u ON s.created_by = u.id
+            LEFT JOIN sale_items si ON s.id = si.sale_id
+            WHERE s.company_id = ?
+        `;
+
+        let params = [req.user.company_id];
+
+        if (startDate) {
+            query += ' AND DATE(s.created_at) >= ?';
+            params.push(startDate);
+        }
+
+        if (endDate) {
+            query += ' AND DATE(s.created_at) <= ?';
+            params.push(endDate);
+        }
+
+        query += ' GROUP BY s.id ORDER BY s.created_at DESC LIMIT ?';
+        params.push(parseInt(limit));
+
+        const [sales] = await connection.execute(query, params);
+        connection.end();
+
+        res.json(sales);
+    } catch (error) {
+        console.error('Error getting sales:', error);
+        res.status(500).json({ error: 'Error del servidor' });
+    }
+});
+
+// Obtener detalles de una venta específica
+app.get('/api/sales/:id', authenticateToken, async (req, res) => {
+    try {
+        const saleId = req.params.id;
+        const connection = await mysql.createConnection(dbConfig);
+
+        // Obtener encabezado de la venta
+        const [sales] = await connection.execute(`
+            SELECT s.*, u.full_name as created_by_name
+            FROM sales s
+            LEFT JOIN users u ON s.created_by = u.id
+            WHERE s.id = ? AND s.company_id = ?
+        `, [saleId, req.user.company_id]);
+
+        if (sales.length === 0) {
+            connection.end();
+            return res.status(404).json({ error: 'Venta no encontrada' });
+        }
+
+        // Obtener items de la venta
+        const [items] = await connection.execute(`
+            SELECT 
+                si.*,
+                ip.barcode,
+                ip.product_name,
+                ip.category
+            FROM sale_items si
+            LEFT JOIN inventory_products ip ON si.product_id = ip.id
+            WHERE si.sale_id = ?
+            ORDER BY si.id
+        `, [saleId]);
+
+        connection.end();
+
+        res.json({
+            sale: sales[0],
+            items: items
+        });
+    } catch (error) {
+        console.error('Error getting sale details:', error);
+        res.status(500).json({ error: 'Error del servidor' });
+    }
+});
+
+// Crear nueva venta - VERSIÓN CORREGIDA
+app.post('/api/sales', authenticateToken, async (req, res) => {
+    let connection;
+    try {
+        const {
+            customer_name = 'Cliente General',
+            customer_document,
+            customer_phone,
+            customer_email,
+            payment_method = 'efectivo',
+            items = []
+        } = req.body;
+
+        console.log('🛒 Creando nueva venta para empresa:', req.user.company_id);
+        console.log('📦 Productos recibidos:', items);
+
+        if (!items || items.length === 0) {
+            return res.status(400).json({ error: 'No hay productos en la venta' });
+        }
+
+        // Validar que todos los productos tengan stock suficiente
+        let totalSubtotal = 0;
+        const validatedItems = [];
+
+        for (const item of items) {
+            console.log('🔍 Validando item:', item);
+
+            if (!item.product_id || !item.quantity || item.quantity <= 0 || !item.unit_price) {
+                return res.status(400).json({
+                    error: 'Datos de productos inválidos',
+                    details: `Producto: ${item.product_name || 'Sin nombre'}, Cantidad: ${item.quantity}, Precio: ${item.unit_price}`
+                });
+            }
+
+            // Calcular subtotal
+            const subtotal = item.quantity * item.unit_price;
+            totalSubtotal += subtotal;
+
+            validatedItems.push({
+                ...item,
+                subtotal: subtotal
+            });
+        }
+
+        console.log('💰 Totales calculados:', {
+            subtotal: totalSubtotal,
+            items: validatedItems.length
+        });
+
+        // Calcular impuestos (16% IVA)
+        const taxRate = 0.16;
+        const tax = totalSubtotal * taxRate;
+        const total = totalSubtotal + tax;
+
+        connection = await mysql.createConnection(dbConfig);
+        await connection.beginTransaction();
+
+        try {
+            // 1. Generar número de factura
+            const invoiceNumber = generateInvoiceNumber(req.user.company_id);
+            console.log('📄 Número de factura generado:', invoiceNumber);
+
+            // 2. Crear registro de venta - CORREGIDO
+            const [saleResult] = await connection.execute(`
+                INSERT INTO sales (
+                    invoice_number, company_id, customer_name, customer_document, 
+                    customer_phone, customer_email, subtotal, tax, total, 
+                    payment_method, created_by
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, [
+                invoiceNumber,
+                req.user.company_id,
+                customer_name,
+                customer_document || null,
+                customer_phone || null,
+                customer_email || null,
+                totalSubtotal.toFixed(2),
+                tax.toFixed(2),
+                total.toFixed(2),
+                payment_method,
+                req.user.id
+            ]);
+
+            const saleId = saleResult.insertId;
+            console.log('✅ Venta creada con ID:', saleId, 'Factura:', invoiceNumber);
+
+            // 3. Crear items de venta y actualizar stock
+            for (const item of validatedItems) {
+                console.log('📦 Procesando producto:', {
+                    id: item.product_id,
+                    nombre: item.product_name,
+                    cantidad: item.quantity,
+                    precio: item.unit_price
+                });
+
+                // Verificar stock disponible antes de descontar
+                const [stockCheck] = await connection.execute(
+                    'SELECT expected_stock FROM inventory_products WHERE id = ?',
+                    [item.product_id]
+                );
+
+                if (stockCheck.length === 0) {
+                    throw new Error(`Producto no encontrado: ${item.product_name}`);
+                }
+
+                const currentStock = stockCheck[0].expected_stock;
+                if (currentStock < item.quantity) {
+                    throw new Error(`Stock insuficiente para ${item.product_name}: ${currentStock} disponible, ${item.quantity} solicitado`);
+                }
+
+                // Insertar item de venta
+                await connection.execute(`
+                    INSERT INTO sale_items (
+                        sale_id, product_id, barcode, product_name, 
+                        quantity, unit_price, subtotal
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                `, [
+                    saleId,
+                    item.product_id,
+                    item.barcode || '',
+                    item.product_name,
+                    item.quantity,
+                    item.unit_price.toFixed(2),
+                    item.subtotal.toFixed(2)
+                ]);
+
+                // Descontar del inventario
+                await connection.execute(`
+                    UPDATE inventory_products 
+                    SET expected_stock = expected_stock - ? 
+                    WHERE id = ? AND expected_stock >= ?
+                `, [item.quantity, item.product_id, item.quantity]);
+
+                console.log(`✅ Stock actualizado para ${item.product_name}`);
+            }
+
+            // 4. Obtener datos completos de la venta creada
+            const [saleDetails] = await connection.execute(`
+                SELECT s.*, u.full_name as created_by_name
+                FROM sales s
+                LEFT JOIN users u ON s.created_by = u.id
+                WHERE s.id = ?
+            `, [saleId]);
+
+            const [saleItems] = await connection.execute(`
+                SELECT si.* FROM sale_items si WHERE si.sale_id = ?
+            `, [saleId]);
+
+            await connection.commit();
+            connection.end();
+
+            console.log('🎉 Venta completada exitosamente:', {
+                venta_id: saleId,
+                factura: invoiceNumber,
+                total_productos: validatedItems.length,
+                total_venta: total
+            });
+
+            res.json({
+                success: true,
+                message: 'Venta registrada exitosamente',
+                sale: saleDetails[0],
+                items: saleItems,
+                invoice_number: invoiceNumber
+            });
+
+        } catch (error) {
+            await connection.rollback();
+            console.error('❌ Error en transacción:', error);
+            throw error;
+        }
+
+    } catch (error) {
+        if (connection) {
+            try {
+                await connection.rollback();
+            } catch (rollbackError) {
+                console.error('Error en rollback:', rollbackError);
+            }
+            connection.end();
+        }
+        console.error('❌ Error creando venta:', error);
+        res.status(500).json({
+            error: 'Error del servidor: ' + error.message,
+            details: error.message
+        });
+    }
+});
+
+// Generar factura/recibo (PDF o HTML)
+app.get('/api/sales/:id/invoice', authenticateToken, async (req, res) => {
+    try {
+        const saleId = req.params.id;
+        const format = req.query.format || 'html';
+        const connection = await mysql.createConnection(dbConfig);
+
+        // Obtener datos de la venta
+        const [sales] = await connection.execute(`
+            SELECT 
+                s.*,
+                u.full_name as seller_name,
+                u.email as seller_email,
+                c.name as company_name,
+                c.address as company_address,
+                c.phone as company_phone
+            FROM sales s
+            LEFT JOIN users u ON s.created_by = u.id
+            LEFT JOIN companies c ON s.company_id = c.id
+            WHERE s.id = ? AND s.company_id = ?
+        `, [saleId, req.user.company_id]);
+
+        if (sales.length === 0) {
+            connection.end();
+            return res.status(404).json({ error: 'Venta no encontrada' });
+        }
+
+        const sale = sales[0];
+
+        // Obtener items de la venta
+        const [items] = await connection.execute(`
+            SELECT si.* FROM sale_items si WHERE si.sale_id = ?
+        `, [saleId]);
+
+        connection.end();
+
+        // Generar HTML de la factura
+        const invoiceHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>Factura ${sale.invoice_number}</title>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        margin: 0;
+                        padding: 20px;
+                        color: #333;
+                    }
+                    .invoice-container {
+                        max-width: 800px;
+                        margin: 0 auto;
+                        border: 1px solid #ddd;
+                        padding: 30px;
+                        background: white;
+                    }
+                    .header {
+                        display: flex;
+                        justify-content: space-between;
+                        margin-bottom: 30px;
+                        border-bottom: 2px solid #8557FB;
+                        padding-bottom: 20px;
+                    }
+                    .company-info h2 {
+                        color: #8557FB;
+                        margin: 0 0 10px 0;
+                    }
+                    .invoice-info h1 {
+                        margin: 0;
+                        color: #333;
+                    }
+                    .details {
+                        margin-bottom: 30px;
+                    }
+                    .details-grid {
+                        display: grid;
+                        grid-template-columns: repeat(2, 1fr);
+                        gap: 20px;
+                        margin-bottom: 20px;
+                    }
+                    .items-table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin: 20px 0;
+                    }
+                    .items-table th {
+                        background: #8557FB;
+                        color: white;
+                        padding: 10px;
+                        text-align: left;
+                    }
+                    .items-table td {
+                        padding: 10px;
+                        border-bottom: 1px solid #ddd;
+                    }
+                    .items-table tr:nth-child(even) {
+                        background: #f9f9f9;
+                    }
+                    .totals {
+                        margin-top: 30px;
+                        text-align: right;
+                    }
+                    .totals table {
+                        margin-left: auto;
+                        width: 300px;
+                    }
+                    .totals td {
+                        padding: 8px;
+                        border-bottom: 1px solid #ddd;
+                    }
+                    .totals tr:last-child td {
+                        font-weight: bold;
+                        font-size: 1.2em;
+                        border-top: 2px solid #333;
+                    }
+                    .footer {
+                        margin-top: 40px;
+                        text-align: center;
+                        color: #666;
+                        font-size: 0.9em;
+                    }
+                    @media print {
+                        body { padding: 0; }
+                        .invoice-container { border: none; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="invoice-container">
+                    <div class="header">
+                        <div class="company-info">
+                            <h2>${sale.company_name || 'Sistema de Inventario'}</h2>
+                            ${sale.company_address ? `<p>${sale.company_address}</p>` : ''}
+                            ${sale.company_phone ? `<p>Tel: ${sale.company_phone}</p>` : ''}
+                        </div>
+                        <div class="invoice-info">
+                            <h1>FACTURA</h1>
+                            <p><strong>Número:</strong> ${sale.invoice_number}</p>
+                            <p><strong>Fecha:</strong> ${new Date(sale.created_at).toLocaleDateString('es-ES')}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="details">
+                        <div class="details-grid">
+                            <div>
+                                <h3>Cliente</h3>
+                                <p><strong>Nombre:</strong> ${sale.customer_name}</p>
+                                ${sale.customer_document ? `<p><strong>RUC/DNI:</strong> ${sale.customer_document}</p>` : ''}
+                                ${sale.customer_email ? `<p><strong>Email:</strong> ${sale.customer_email}</p>` : ''}
+                                ${sale.customer_phone ? `<p><strong>Teléfono:</strong> ${sale.customer_phone}</p>` : ''}
+                            </div>
+                            <div>
+                                <h3>Vendedor</h3>
+                                <p><strong>Nombre:</strong> ${sale.seller_name}</p>
+                                <p><strong>Fecha:</strong> ${new Date(sale.created_at).toLocaleString('es-ES')}</p>
+                                <p><strong>Método de pago:</strong> ${sale.payment_method}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Producto</th>
+                                <th>Cantidad</th>
+                                <th>Precio Unitario</th>
+                                <th>Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${items.map(item => `
+                                <tr>
+                                    <td>${item.barcode}</td>
+                                    <td>${item.product_name}</td>
+                                    <td>${item.quantity}</td>
+                                    <td>$${parseFloat(item.unit_price).toFixed(2)}</td>
+                                    <td>$${parseFloat(item.subtotal).toFixed(2)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    
+                    <div class="totals">
+                        <table>
+                            <tr>
+                                <td>Subtotal:</td>
+                                <td>$${parseFloat(sale.subtotal).toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                                <td>IVA (16%):</td>
+                                <td>$${parseFloat(sale.tax).toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                                <td>Total:</td>
+                                <td>$${parseFloat(sale.total).toFixed(2)}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <div class="footer">
+                        <p>¡Gracias por su compra!</p>
+                        <p>Documento generado automáticamente por Sistema de Inventario</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+
+        if (format === 'html') {
+            res.setHeader('Content-Type', 'text/html');
+            res.send(invoiceHtml);
+        } else {
+            // Para PDF necesitarías una librería como puppeteer o html-pdf
+            res.json({
+                success: true,
+                sale,
+                items,
+                html: invoiceHtml
+            });
+        }
+
+    } catch (error) {
+        console.error('Error generating invoice:', error);
+        res.status(500).json({ error: 'Error del servidor' });
+    }
+});
+
+// ✅ ¡ESTA ES LA RUTA QUE FALTABA!
+// Estadísticas de ventas - VERSIÓN CORREGIDA
+app.get('/api/sales/stats', authenticateToken, async (req, res) => {
+    try {
+        const { period = 'today' } = req.query;
+        const connection = await mysql.createConnection(dbConfig);
+
+        console.log('📊 Obteniendo estadísticas de ventas para periodo:', period, 'company:', req.user.company_id);
+
+        let dateFilter = '';
+        let params = [req.user.company_id];
+
+        if (period === 'today') {
+            dateFilter = 'AND DATE(s.created_at) = CURDATE()';
+        } else if (period === 'week') {
+            dateFilter = 'AND s.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)';
+        } else if (period === 'month') {
+            dateFilter = 'AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)';
+        }
+
+        // Estadísticas generales
+        const [stats] = await connection.execute(`
+            SELECT 
+                COUNT(*) as total_sales,
+                COALESCE(SUM(s.total), 0) as total_revenue,
+                COALESCE(SUM(si.quantity), 0) as total_items_sold,
+                CASE 
+                    WHEN COUNT(*) > 0 THEN COALESCE(SUM(s.total) / COUNT(*), 0)
+                    ELSE 0 
+                END as average_sale
+            FROM sales s
+            LEFT JOIN sale_items si ON s.id = si.sale_id
+            WHERE s.company_id = ? ${dateFilter}
+        `, params);
+
+        // Productos más vendidos
+        const [topProducts] = await connection.execute(`
+            SELECT 
+                si.product_name,
+                si.barcode,
+                SUM(si.quantity) as total_sold,
+                SUM(si.subtotal) as total_revenue
+            FROM sale_items si
+            INNER JOIN sales s ON si.sale_id = s.id
+            WHERE s.company_id = ? ${dateFilter}
+            GROUP BY si.product_id, si.product_name, si.barcode
+            ORDER BY total_sold DESC
+            LIMIT 10
+        `, params);
+
+        // Ventas por día (para gráfico)
+        const [dailySales] = await connection.execute(`
+            SELECT 
+                DATE(s.created_at) as date,
+                COUNT(*) as sales_count,
+                SUM(s.total) as daily_revenue,
+                SUM(si.quantity) as items_sold
+            FROM sales s
+            LEFT JOIN sale_items si ON s.id = si.sale_id
+            WHERE s.company_id = ? ${dateFilter}
+            GROUP BY DATE(s.created_at)
+            ORDER BY date DESC
+            LIMIT 7
+        `, params);
+
+        connection.end();
+
+        const result = {
+            success: true,
+            overview: {
+                total_sales: parseInt(stats[0].total_sales) || 0,
+                total_revenue: parseFloat(stats[0].total_revenue) || 0,
+                total_items_sold: parseInt(stats[0].total_items_sold) || 0,
+                average_sale: parseFloat(stats[0].average_sale) || 0
+            },
+            top_products: topProducts || [],
+            daily_sales: dailySales || [],
+            period: period
+        };
+
+        console.log('✅ Estadísticas obtenidas:', result.overview);
+        res.json(result);
+        
+    } catch (error) {
+        console.error('❌ Error getting sales stats:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Error del servidor al obtener estadísticas',
+            details: error.message 
+        });
+    }
+});
 
 // ==============================================
 // RUTAS DE SUPERADMIN
@@ -195,7 +922,7 @@ const sendEmail = async (mailOptions) => {
 app.get('/api/superadmin/companies', authenticateToken, requireSuperAdmin, async (req, res) => {
     try {
         const connection = await mysql.createConnection(dbConfig);
-        
+
         const [companies] = await connection.execute(`
             SELECT 
                 c.*,
@@ -211,7 +938,7 @@ app.get('/api/superadmin/companies', authenticateToken, requireSuperAdmin, async
         `);
 
         connection.end();
-        
+
         res.json(companies);
     } catch (error) {
         console.error('Error getting companies:', error);
@@ -223,7 +950,7 @@ app.get('/api/superadmin/companies', authenticateToken, requireSuperAdmin, async
 app.get('/api/superadmin/stats', authenticateToken, requireSuperAdmin, async (req, res) => {
     try {
         const connection = await mysql.createConnection(dbConfig);
-        
+
         const [stats] = await connection.execute(`
             SELECT 
                 COUNT(DISTINCT c.id) as total_companies,
@@ -255,7 +982,7 @@ app.get('/api/superadmin/stats', authenticateToken, requireSuperAdmin, async (re
         `);
 
         connection.end();
-        
+
         res.json({
             overview: stats[0],
             recentActivity
@@ -271,7 +998,7 @@ app.post('/api/superadmin/companies', authenticateToken, requireSuperAdmin, asyn
     let connection;
     try {
         const { company_name, admin_username, admin_email, admin_full_name, admin_password, user_limit } = req.body;
-        
+
         console.log('🏢 Creando nueva empresa:', { company_name, admin_username });
 
         if (!company_name || !admin_username || !admin_email || !admin_full_name || !admin_password) {
@@ -384,10 +1111,10 @@ app.post('/api/superadmin/companies', authenticateToken, requireSuperAdmin, asyn
             }
 
             connection.end();
-            
+
             console.log('✅ Empresa creada exitosamente');
-            
-            res.json({ 
+
+            res.json({
                 success: true,
                 message: 'Empresa y usuario administrador creados exitosamente',
                 company_id: companyId,
@@ -419,7 +1146,7 @@ app.get('/api/superadmin/companies/:companyId/users', authenticateToken, require
     try {
         const companyId = req.params.companyId;
         const connection = await mysql.createConnection(dbConfig);
-        
+
         const [users] = await connection.execute(`
             SELECT 
                 u.id, u.username, u.email, u.full_name, u.role, u.is_active, 
@@ -432,7 +1159,7 @@ app.get('/api/superadmin/companies/:companyId/users', authenticateToken, require
         `, [companyId]);
 
         connection.end();
-        
+
         res.json(users);
     } catch (error) {
         console.error('Error getting company users:', error);
@@ -445,7 +1172,7 @@ app.get('/api/superadmin/companies/:companyId/inventories', authenticateToken, r
     try {
         const companyId = req.params.companyId;
         const connection = await mysql.createConnection(dbConfig);
-        
+
         const [inventories] = await connection.execute(`
             SELECT 
                 i.*, 
@@ -463,7 +1190,7 @@ app.get('/api/superadmin/companies/:companyId/inventories', authenticateToken, r
         `, [companyId]);
 
         connection.end();
-        
+
         res.json(inventories);
     } catch (error) {
         console.error('Error getting company inventories:', error);
@@ -475,7 +1202,7 @@ app.get('/api/superadmin/companies/:companyId/inventories', authenticateToken, r
 app.get('/api/superadmin/audit-logs', authenticateToken, requireSuperAdmin, async (req, res) => {
     try {
         const connection = await mysql.createConnection(dbConfig);
-        
+
         const [logs] = await connection.execute(`
             (SELECT 
                 'login' as action_type,
@@ -505,7 +1232,7 @@ app.get('/api/superadmin/audit-logs', authenticateToken, requireSuperAdmin, asyn
         `);
 
         connection.end();
-        
+
         res.json(logs);
     } catch (error) {
         console.error('Error getting audit logs:', error);
@@ -521,7 +1248,7 @@ app.get('/api/superadmin/audit-logs', authenticateToken, requireSuperAdmin, asyn
 app.get('/api/profile', authenticateToken, async (req, res) => {
     try {
         const connection = await mysql.createConnection(dbConfig);
-        
+
         const [users] = await connection.execute(`
             SELECT 
                 u.id, u.username, u.email, u.full_name, u.role, u.company_id,
@@ -549,7 +1276,7 @@ app.put('/api/profile', authenticateToken, async (req, res) => {
     let connection;
     try {
         const { full_name, email, current_password, new_password } = req.body;
-        
+
         connection = await mysql.createConnection(dbConfig);
 
         // Verificar contraseña actual si se quiere cambiar la contraseña
@@ -591,8 +1318,8 @@ app.put('/api/profile', authenticateToken, async (req, res) => {
 
         await connection.execute(updateQuery, queryParams);
         connection.end();
-        
-        res.json({ 
+
+        res.json({
             success: true,
             message: 'Perfil actualizado exitosamente'
         });
@@ -612,7 +1339,7 @@ app.post('/api/register', async (req, res) => {
     let connection;
     try {
         const { company_name, username, email, password, full_name } = req.body;
-        
+
         console.log('📝 Intentando registro:', { company_name, username, email, full_name });
 
         if (!company_name || !username || !email || !password || !full_name) {
@@ -834,12 +1561,12 @@ app.post('/api/register', async (req, res) => {
                 company_name: company_name,
                 user_limit: 10
             };
-            
+
             console.log('✅ Registro completado exitosamente');
-            
-            res.json({ 
+
+            res.json({
                 success: true,
-                token, 
+                token,
                 user: userData,
                 message: 'Empresa y usuario administrador creados exitosamente'
             });
@@ -870,7 +1597,7 @@ app.post('/api/login', async (req, res) => {
     let connection;
     try {
         const { username, password } = req.body;
-        
+
         console.log('🔐 Login attempt for:', username);
 
         if (!username || !password) {
@@ -895,7 +1622,7 @@ app.post('/api/login', async (req, res) => {
 
         const user = users[0];
         const isValidPassword = await bcrypt.compare(password, user.password);
-        
+
         if (!isValidPassword) {
             connection.end();
             console.log('❌ Contraseña incorrecta para:', username);
@@ -918,13 +1645,13 @@ app.post('/api/login', async (req, res) => {
             company_name: user.company_name,
             user_limit: user.user_limit
         };
-        
+
         console.log('🎉 Login successful for:', username);
-        
-        res.json({ 
+
+        res.json({
             success: true,
-            token, 
-            user: userData 
+            token,
+            user: userData
         });
     } catch (error) {
         console.error('❌ Login error:', error);
@@ -938,7 +1665,7 @@ app.post('/api/login', async (req, res) => {
 app.get('/api/company', authenticateToken, async (req, res) => {
     try {
         const connection = await mysql.createConnection(dbConfig);
-        
+
         const [companies] = await connection.execute(
             `SELECT c.*, COUNT(u.id) as current_users 
              FROM companies c 
@@ -965,7 +1692,7 @@ app.get('/api/company', authenticateToken, async (req, res) => {
 app.get('/api/inventories', authenticateToken, async (req, res) => {
     try {
         const connection = await mysql.createConnection(dbConfig);
-        
+
         let query, params;
 
         if (req.user.role === 'admin') {
@@ -1017,10 +1744,10 @@ app.get('/api/inventories', authenticateToken, async (req, res) => {
             `;
             params = [req.user.id, req.user.company_id];
         }
-        
+
         const [inventories] = await connection.execute(query, params);
         connection.end();
-        
+
         console.log(`Found ${inventories.length} inventories for user: ${req.user.id}`);
         res.json(inventories);
     } catch (error) {
@@ -1034,7 +1761,7 @@ app.get('/api/inventories/:id', authenticateToken, async (req, res) => {
     try {
         const inventoryId = req.params.id;
         const connection = await mysql.createConnection(dbConfig);
-        
+
         let query, params;
 
         if (req.user.role === 'admin') {
@@ -1088,13 +1815,13 @@ app.post('/api/inventories', authenticateToken, async (req, res) => {
         );
 
         connection.end();
-        
+
         console.log(`Inventory created with ID: ${result.insertId}`);
-        
-        res.json({ 
+
+        res.json({
             success: true,
-            id: result.insertId, 
-            message: 'Inventario creado exitosamente' 
+            id: result.insertId,
+            message: 'Inventario creado exitosamente'
         });
     } catch (error) {
         console.error('Error creating inventory:', error);
@@ -1113,7 +1840,7 @@ app.put('/api/inventories/:id', authenticateToken, async (req, res) => {
         }
 
         const connection = await mysql.createConnection(dbConfig);
-        
+
         let query, params;
 
         if (req.user.role === 'admin') {
@@ -1141,12 +1868,12 @@ app.put('/api/inventories/:id', authenticateToken, async (req, res) => {
         );
 
         connection.end();
-        
+
         console.log(`Inventory updated: ${inventoryId}`);
-        
-        res.json({ 
+
+        res.json({
             success: true,
-            message: 'Inventario actualizado exitosamente' 
+            message: 'Inventario actualizado exitosamente'
         });
     } catch (error) {
         console.error('Error updating inventory:', error);
@@ -1159,7 +1886,7 @@ app.delete('/api/inventories/:id', authenticateToken, async (req, res) => {
     try {
         const inventoryId = req.params.id;
         const connection = await mysql.createConnection(dbConfig);
-        
+
         let query, params;
 
         if (req.user.role === 'admin') {
@@ -1186,12 +1913,12 @@ app.delete('/api/inventories/:id', authenticateToken, async (req, res) => {
         await connection.execute('DELETE FROM inventories WHERE id = ?', [inventoryId]);
 
         connection.end();
-        
+
         console.log(`Inventory deleted successfully: ${inventoryId}`);
-        
-        res.json({ 
+
+        res.json({
             success: true,
-            message: 'Inventario eliminado exitosamente' 
+            message: 'Inventario eliminado exitosamente'
         });
     } catch (error) {
         console.error('Error deleting inventory:', error);
@@ -1246,8 +1973,8 @@ app.post('/api/inventories/:id/upload', authenticateToken, upload.single('file')
         const columnNames = Object.keys(data[0]);
         console.log('Excel columns:', columnNames);
 
-        const barcodeKey = columnNames.find(key => 
-            key.toLowerCase().includes('barcode') || 
+        const barcodeKey = columnNames.find(key =>
+            key.toLowerCase().includes('barcode') ||
             key.toLowerCase().includes('codigo') ||
             key.toLowerCase().includes('código') ||
             key.toLowerCase().includes('ean') ||
@@ -1257,8 +1984,8 @@ app.post('/api/inventories/:id/upload', authenticateToken, upload.single('file')
 
         if (!barcodeKey) {
             connection.end();
-            return res.status(400).json({ 
-                error: 'El archivo debe contener una columna de código de barras' 
+            return res.status(400).json({
+                error: 'El archivo debe contener una columna de código de barras'
             });
         }
 
@@ -1271,7 +1998,7 @@ app.post('/api/inventories/:id/upload', authenticateToken, upload.single('file')
         for (const [index, row] of data.entries()) {
             try {
                 const barcode = row[barcodeKey] ? String(row[barcodeKey]).trim() : null;
-                
+
                 if (!barcode) {
                     errors++;
                     errorsList.push(`Fila ${index + 2}: Sin código de barras`);
@@ -1279,13 +2006,13 @@ app.post('/api/inventories/:id/upload', authenticateToken, upload.single('file')
                 }
 
                 const skuKey = columnNames.find(key => key.toLowerCase().includes('sku'));
-                const nameKey = columnNames.find(key => 
-                    key.toLowerCase().includes('name') || 
+                const nameKey = columnNames.find(key =>
+                    key.toLowerCase().includes('name') ||
                     key.toLowerCase().includes('nombre') ||
                     key.toLowerCase().includes('producto')
                 );
-                const stockKey = columnNames.find(key => 
-                    key.toLowerCase().includes('stock') || 
+                const stockKey = columnNames.find(key =>
+                    key.toLowerCase().includes('stock') ||
                     key.toLowerCase().includes('cantidad')
                 );
 
@@ -1316,10 +2043,10 @@ app.post('/api/inventories/:id/upload', authenticateToken, upload.single('file')
         );
 
         connection.end();
-        
+
         console.log(`File processed: ${processed} success, ${errors} errors`);
-        
-        const response = { 
+
+        const response = {
             success: true,
             message: `Se procesaron ${processed} productos exitosamente`,
             processed,
@@ -1350,7 +2077,7 @@ app.get('/api/inventories/:id/products/search', authenticateToken, async (req, r
         }
 
         const connection = await mysql.createConnection(dbConfig);
-        
+
         let query, params;
 
         if (req.user.role === 'admin') {
@@ -1400,7 +2127,7 @@ app.get('/api/inventories/:id/products', authenticateToken, async (req, res) => 
     try {
         const inventoryId = req.params.id;
         const connection = await mysql.createConnection(dbConfig);
-        
+
         let query, params;
 
         if (req.user.role === 'admin') {
@@ -1422,9 +2149,22 @@ app.get('/api/inventories/:id/products', authenticateToken, async (req, res) => 
             return res.status(404).json({ error: 'Inventario no encontrado' });
         }
 
+        const inventory = inventories[0];
+
         const [products] = await connection.execute(`
             SELECT 
-                ip.*,
+                ip.id,
+                ip.inventory_id,
+                ip.barcode,
+                ip.sku,
+                ip.product_name AS name,
+                ip.description AS description,
+                ip.category AS category,
+                ip.location AS location,
+                ip.expected_stock AS expected_quantity,
+                ip.counted_stock AS counted_quantity,
+                ip.count_date,
+                ip.counted_by,
                 u.full_name as counted_by_name,
                 CASE 
                     WHEN ip.counted_stock IS NULL OR ip.counted_stock = 0 THEN 'not-counted'
@@ -1450,9 +2190,457 @@ app.get('/api/inventories/:id/products', authenticateToken, async (req, res) => 
         `, [inventoryId]);
 
         connection.end();
-        res.json(products);
+
+        // Devolver tanto los productos como el nombre del inventario
+        res.json({
+            products: products,
+            inventory_name: inventory.name
+        });
     } catch (error) {
         console.error('Error getting products:', error);
+        res.status(500).json({ error: 'Error del servidor' });
+    }
+});
+
+// Cargar productos desde Excel (devolviendo los datos)
+app.post('/api/inventories/:id/products/upload', authenticateToken, upload.single('file'), async (req, res) => {
+    let connection;
+    try {
+        const inventoryId = req.params.id;
+        const file = req.file;
+
+        if (!file) {
+            return res.status(400).json({ error: 'No se proporcionó archivo' });
+        }
+
+        connection = await mysql.createConnection(dbConfig);
+
+        let query, params;
+
+        if (req.user.role === 'admin') {
+            query = 'SELECT * FROM inventories WHERE id = ? AND company_id = ?';
+            params = [inventoryId, req.user.company_id];
+        } else {
+            query = `
+                SELECT i.* FROM user_inventories ui
+                INNER JOIN inventories i ON ui.inventory_id = i.id
+                WHERE ui.user_id = ? AND i.id = ? AND i.company_id = ?
+            `;
+            params = [req.user.id, inventoryId, req.user.company_id];
+        }
+
+        const [inventories] = await connection.execute(query, params);
+
+        if (inventories.length === 0) {
+            connection.end();
+            return res.status(404).json({ error: 'Inventario no encontrado o sin permisos' });
+        }
+
+        const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const data = XLSX.utils.sheet_to_json(worksheet);
+
+        if (data.length === 0) {
+            connection.end();
+            return res.status(400).json({ error: 'El archivo está vacío' });
+        }
+
+        const columnNames = Object.keys(data[0]);
+
+        const barcodeKey = columnNames.find(key =>
+            key.toLowerCase().includes('barcode') ||
+            key.toLowerCase().includes('codigo') ||
+            key.toLowerCase().includes('código') ||
+            key.toLowerCase().includes('ean') ||
+            key.toLowerCase().includes('upc') ||
+            key.toLowerCase().includes('sku')
+        );
+
+        if (!barcodeKey) {
+            connection.end();
+            return res.status(400).json({
+                error: 'El archivo debe contener una columna de código de barras'
+            });
+        }
+
+        // Detectar las claves de columnas UNA SOLA VEZ fuera del loop
+        const skuKey = columnNames.find(key => key.toLowerCase().includes('sku'));
+        const nameKey = columnNames.find(key =>
+            key.toLowerCase().includes('name') ||
+            key.toLowerCase().includes('nombre') ||
+            key.toLowerCase().includes('producto')
+        );
+        const stockKey = columnNames.find(key =>
+            key.toLowerCase().includes('stock') ||
+            key.toLowerCase().includes('cantidad') ||
+            key.toLowerCase().includes('esperado')
+        );
+        const descriptionKey = columnNames.find(key =>
+            key.toLowerCase().includes('descripción') ||
+            key.toLowerCase().includes('descripcion') ||
+            key.toLowerCase().includes('description')
+        );
+        const categoryKey = columnNames.find(key =>
+            key.toLowerCase().includes('categoría') ||
+            key.toLowerCase().includes('categoria') ||
+            key.toLowerCase().includes('category')
+        );
+        const locationKey = columnNames.find(key =>
+            key.toLowerCase().includes('ubicación') ||
+            key.toLowerCase().includes('ubicacion') ||
+            key.toLowerCase().includes('location')
+        );
+
+        let processed = 0;
+        let errors = 0;
+        const errorsList = [];
+        const uploadedProducts = [];
+
+        for (const [index, row] of data.entries()) {
+            try {
+                const barcode = row[barcodeKey] ? String(row[barcodeKey]).trim() : null;
+
+                if (!barcode) {
+                    errors++;
+                    errorsList.push(`Fila ${index + 2}: Sin código de barras`);
+                    continue;
+                }
+
+                const productName = nameKey && row[nameKey] ? String(row[nameKey]) : `Producto ${barcode}`;
+                const productSku = skuKey && row[skuKey] ? String(row[skuKey]) : null;
+                const productStock = stockKey && row[stockKey] ? parseInt(row[stockKey]) || 0 : 0;
+                const productDescription = descriptionKey && row[descriptionKey] ? String(row[descriptionKey]) : null;
+                const productCategory = categoryKey && row[categoryKey] ? String(row[categoryKey]) : null;
+                const productLocation = locationKey && row[locationKey] ? String(row[locationKey]) : null;
+
+                const [result] = await connection.execute(
+                    `INSERT INTO inventory_products 
+                    (inventory_id, barcode, sku, product_name, expected_stock, description, category, location) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE
+                    sku = VALUES(sku), product_name = VALUES(product_name), expected_stock = VALUES(expected_stock),
+                    description = VALUES(description), category = VALUES(category), location = VALUES(location)`,
+                    [
+                        inventoryId,
+                        barcode,
+                        productSku,
+                        productName,
+                        productStock,
+                        productDescription,
+                        productCategory,
+                        productLocation
+                    ]
+                );
+
+                // Obtener el producto por barcode y inventoryId (más confiable que insertId)
+                const [products] = await connection.execute(
+                    'SELECT * FROM inventory_products WHERE inventory_id = ? AND barcode = ? LIMIT 1',
+                    [inventoryId, barcode]
+                );
+
+                if (products.length > 0) {
+                    uploadedProducts.push(products[0]);
+                }
+
+                processed++;
+            } catch (rowError) {
+                errors++;
+                errorsList.push(`Fila ${index + 2}: ${rowError.message}`);
+                console.error('Error en fila:', rowError);
+            }
+        }
+
+        // Actualizar contador de productos
+        await connection.execute(
+            `UPDATE inventories 
+            SET total_products = (SELECT COUNT(*) FROM inventory_products WHERE inventory_id = ?) 
+            WHERE id = ?`,
+            [inventoryId, inventoryId]
+        );
+
+        connection.end();
+
+        res.json({
+            success: true,
+            message: `Se cargaron ${processed} productos exitosamente`,
+            products: uploadedProducts,
+            processed,
+            errors,
+            totalRows: data.length,
+            errorDetails: errors > 0 ? errorsList.slice(0, 10) : []
+        });
+    } catch (error) {
+        if (connection) connection.end();
+        console.error('Error processing file:', error);
+        res.status(500).json({ error: 'Error procesando archivo: ' + error.message });
+    }
+});
+
+// Agregar producto a un inventario
+app.post('/api/inventories/:id/products', authenticateToken, async (req, res) => {
+    try {
+        const inventoryId = req.params.id;
+        // Aceptar tanto 'name' como 'product_name', 'expected_quantity' como 'expected_stock'
+        const { barcode, sku, name, product_name, expected_quantity, expected_stock, category, description } = req.body;
+
+        const finalProductName = product_name || name;
+        const finalExpectedStock = expected_stock !== undefined ? expected_stock : (expected_quantity || 0);
+
+        if (!barcode || !finalProductName) {
+            return res.status(400).json({ error: 'Barcode y product_name son requeridos' });
+        }
+
+        const connection = await mysql.createConnection(dbConfig);
+
+        // Verificar que el usuario tenga acceso al inventario
+        let query, params;
+        if (req.user.role === 'admin') {
+            query = 'SELECT * FROM inventories WHERE id = ? AND company_id = ?';
+            params = [inventoryId, req.user.company_id];
+        } else {
+            query = `
+                SELECT i.* FROM user_inventories ui
+                INNER JOIN inventories i ON ui.inventory_id = i.id
+                WHERE ui.user_id = ? AND i.id = ? AND i.company_id = ?
+            `;
+            params = [req.user.id, inventoryId, req.user.company_id];
+        }
+
+        const [inventories] = await connection.execute(query, params);
+        if (inventories.length === 0) {
+            connection.end();
+            return res.status(403).json({ error: 'No tienes acceso a este inventario' });
+        }
+
+        // Insertar el producto
+        const [result] = await connection.execute(`
+            INSERT INTO inventory_products (inventory_id, barcode, sku, product_name, expected_stock)
+            VALUES (?, ?, ?, ?, ?)
+        `, [inventoryId, barcode, sku || null, finalProductName, finalExpectedStock]);
+
+        // Actualizar contador de productos en el inventario
+        await connection.execute(`
+            UPDATE inventories 
+            SET total_products = total_products + 1 
+            WHERE id = ?
+        `, [inventoryId]);
+
+        const [newProduct] = await connection.execute(`
+            SELECT * FROM inventory_products WHERE id = ?
+        `, [result.insertId]);
+
+        connection.end();
+
+        res.status(201).json({
+            message: 'Producto agregado exitosamente',
+            product: newProduct[0]
+        });
+    } catch (error) {
+        console.error('Error adding product:', error);
+        res.status(500).json({ error: 'Error del servidor' });
+    }
+});
+
+// Obtener categorías de un inventario
+app.get('/api/inventories/:id/categories', authenticateToken, async (req, res) => {
+    try {
+        const inventoryId = req.params.id;
+        const connection = await mysql.createConnection(dbConfig);
+
+        // Access check (simple: if user has access to inventory)
+        let query, params;
+        if (req.user.role === 'admin') {
+            query = 'SELECT * FROM inventories WHERE id = ? AND company_id = ?';
+            params = [inventoryId, req.user.company_id];
+        } else {
+            query = `
+                SELECT i.* FROM user_inventories ui
+                INNER JOIN inventories i ON ui.inventory_id = i.id
+                WHERE ui.user_id = ? AND i.id = ? AND i.company_id = ?
+            `;
+            params = [req.user.id, inventoryId, req.user.company_id];
+        }
+
+        const [inventories] = await connection.execute(query, params);
+        if (inventories.length === 0) {
+            connection.end();
+            return res.status(403).json({ error: 'No tienes acceso a este inventario' });
+        }
+
+        const [rows] = await connection.execute(
+            'SELECT name FROM inventory_categories WHERE inventory_id = ? ORDER BY name',
+            [inventoryId]
+        );
+        connection.end();
+        res.json(rows.map(r => r.name));
+    } catch (error) {
+        console.error('Error fetching categories:', error);
+        res.status(500).json({ error: 'Error del servidor' });
+    }
+});
+
+// Agregar categoría a un inventario
+app.post('/api/inventories/:id/categories', authenticateToken, async (req, res) => {
+    try {
+        const inventoryId = req.params.id;
+        const { name } = req.body;
+        if (!name || !String(name).trim()) {
+            return res.status(400).json({ error: 'Nombre de categoría inválido' });
+        }
+
+        const connection = await mysql.createConnection(dbConfig);
+
+        // Access check
+        let query, params;
+        if (req.user.role === 'admin') {
+            query = 'SELECT * FROM inventories WHERE id = ? AND company_id = ?';
+            params = [inventoryId, req.user.company_id];
+        } else {
+            query = `
+                SELECT i.* FROM user_inventories ui
+                INNER JOIN inventories i ON ui.inventory_id = i.id
+                WHERE ui.user_id = ? AND i.id = ? AND i.company_id = ?
+            `;
+            params = [req.user.id, inventoryId, req.user.company_id];
+        }
+        const [inventories] = await connection.execute(query, params);
+        if (inventories.length === 0) {
+            connection.end();
+            return res.status(403).json({ error: 'No tienes acceso a este inventario' });
+        }
+
+        // Insert if not exists
+        await connection.execute(
+            'INSERT IGNORE INTO inventory_categories (inventory_id, name) VALUES (?, ?)',
+            [inventoryId, String(name).trim()]
+        );
+
+        const [rows] = await connection.execute(
+            'SELECT name FROM inventory_categories WHERE inventory_id = ? ORDER BY name',
+            [inventoryId]
+        );
+
+        connection.end();
+        res.status(201).json({ success: true, categories: rows.map(r => r.name) });
+    } catch (error) {
+        console.error('Error adding category:', error);
+        res.status(500).json({ error: 'Error del servidor' });
+    }
+});
+
+// Actualizar producto
+app.put('/api/inventories/:inventoryId/products/:productId', authenticateToken, async (req, res) => {
+    try {
+        const { inventoryId, productId } = req.params;
+        const { barcode, sku, name, product_name, expected_quantity, expected_stock } = req.body;
+
+        const finalProductName = product_name || name;
+        const finalExpectedStock = expected_stock !== undefined ? expected_stock : (expected_quantity || 0);
+
+        const connection = await mysql.createConnection(dbConfig);
+
+        // Verificar acceso
+        let query, params;
+        if (req.user.role === 'admin') {
+            query = 'SELECT * FROM inventories WHERE id = ? AND company_id = ?';
+            params = [inventoryId, req.user.company_id];
+        } else {
+            query = `
+                SELECT i.* FROM user_inventories ui
+                INNER JOIN inventories i ON ui.inventory_id = i.id
+                WHERE ui.user_id = ? AND i.id = ? AND i.company_id = ?
+            `;
+            params = [req.user.id, inventoryId, req.user.company_id];
+        }
+
+        const [inventories] = await connection.execute(query, params);
+        if (inventories.length === 0) {
+            connection.end();
+            return res.status(403).json({ error: 'No tienes acceso a este inventario' });
+        }
+
+        // Actualizar producto
+        await connection.execute(`
+            UPDATE inventory_products 
+            SET barcode = ?, sku = ?, product_name = ?, expected_stock = ?
+            WHERE id = ? AND inventory_id = ?
+        `, [barcode, sku || null, finalProductName, finalExpectedStock, productId, inventoryId]);
+
+        const [updatedProduct] = await connection.execute(`
+            SELECT * FROM inventory_products WHERE id = ? AND inventory_id = ?
+        `, [productId, inventoryId]);
+
+        connection.end();
+
+        if (updatedProduct.length === 0) {
+            return res.status(404).json({ error: 'Producto no encontrado' });
+        }
+
+        res.json({
+            message: 'Producto actualizado exitosamente',
+            product: updatedProduct[0]
+        });
+    } catch (error) {
+        console.error('Error updating product:', error);
+        res.status(500).json({ error: 'Error del servidor' });
+    }
+});
+
+// Eliminar producto
+app.delete('/api/inventories/:inventoryId/products/:productId', authenticateToken, async (req, res) => {
+    try {
+        const { inventoryId, productId } = req.params;
+
+        const connection = await mysql.createConnection(dbConfig);
+
+        // Verificar acceso
+        let query, params;
+        if (req.user.role === 'admin') {
+            query = 'SELECT * FROM inventories WHERE id = ? AND company_id = ?';
+            params = [inventoryId, req.user.company_id];
+        } else {
+            query = `
+                SELECT i.* FROM user_inventories ui
+                INNER JOIN inventories i ON ui.inventory_id = i.id
+                WHERE ui.user_id = ? AND i.id = ? AND i.company_id = ?
+            `;
+            params = [req.user.id, inventoryId, req.user.company_id];
+        }
+
+        const [inventories] = await connection.execute(query, params);
+        if (inventories.length === 0) {
+            connection.end();
+            return res.status(403).json({ error: 'No tienes acceso a este inventario' });
+        }
+
+        // Verificar que el producto existe
+        const [products] = await connection.execute(`
+            SELECT * FROM inventory_products WHERE id = ? AND inventory_id = ?
+        `, [productId, inventoryId]);
+
+        if (products.length === 0) {
+            connection.end();
+            return res.status(404).json({ error: 'Producto no encontrado' });
+        }
+
+        // Eliminar el producto
+        await connection.execute(`
+            DELETE FROM inventory_products WHERE id = ? AND inventory_id = ?
+        `, [productId, inventoryId]);
+
+        // Actualizar contador de productos
+        await connection.execute(`
+            UPDATE inventories 
+            SET total_products = GREATEST(0, total_products - 1) 
+            WHERE id = ?
+        `, [inventoryId]);
+
+        connection.end();
+
+        res.json({ message: 'Producto eliminado exitosamente' });
+    } catch (error) {
+        console.error('Error deleting product:', error);
         res.status(500).json({ error: 'Error del servidor' });
     }
 });
@@ -1514,7 +2702,7 @@ app.post('/api/inventories/:id/count', authenticateToken, async (req, res) => {
         } else {
             productId = products[0].id;
             newCountedStock = (products[0].counted_stock || 0) + quantity;
-            
+
             await connection.execute(
                 `UPDATE inventory_products 
                  SET counted_stock = ?, count_date = NOW(), counted_by = ?
@@ -1579,10 +2767,10 @@ app.post('/api/inventories/:id/count', authenticateToken, async (req, res) => {
         );
 
         connection.end();
-        
+
         console.log(`Count registered successfully - added ${quantity} to product ${barcode}`);
-        
-        res.json({ 
+
+        res.json({
             success: true,
             message: 'Conteo registrado exitosamente',
             product: updatedProduct,
@@ -1606,7 +2794,7 @@ app.get('/api/inventories/:id/export', authenticateToken, async (req, res) => {
         const inventoryId = req.params.id;
         const format = req.query.format || 'excel';
         const type = req.query.type || 'all';
-        
+
         connection = await mysql.createConnection(dbConfig);
 
         let query, params;
@@ -1718,7 +2906,7 @@ app.get('/api/inventories/:id/export', authenticateToken, async (req, res) => {
 
         } else {
             const workbook = XLSX.utils.book_new();
-            
+
             const worksheetData = [
                 ['Código Barras', 'SKU', 'Producto', 'Stock Esperado', 'Stock Contado', 'Diferencia', 'Estado', 'Fecha Conteo'],
                 ...products.map(product => [
@@ -1734,7 +2922,7 @@ app.get('/api/inventories/:id/export', authenticateToken, async (req, res) => {
             ];
 
             const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-            
+
             if (worksheet['!ref']) {
                 const range = XLSX.utils.decode_range(worksheet['!ref']);
                 for (let col = range.s.c; col <= range.e.c; col++) {
@@ -1761,11 +2949,11 @@ app.get('/api/inventories/:id/export', authenticateToken, async (req, res) => {
             };
 
             const now = new Date();
-            const timestamp = now.toISOString().slice(0,19).replace(/:/g, '-');
+            const timestamp = now.toISOString().slice(0, 19).replace(/:/g, '-');
             const filename = `inventario_${typeNames[type]}_${inventory.name}_${timestamp}.xlsx`;
 
             const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-            
+
             res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
             res.send(excelBuffer);
@@ -1792,9 +2980,9 @@ app.get('/api/users', authenticateToken, async (req, res) => {
             WHERE company_id = ?
             ORDER BY created_at DESC
         `, [req.user.company_id]);
-        
+
         connection.end();
-        
+
         res.json(users);
     } catch (error) {
         console.error('Error getting users:', error);
@@ -1810,7 +2998,7 @@ app.post('/api/users', authenticateToken, async (req, res) => {
         }
 
         const { username, email, password, full_name, role } = req.body;
-        
+
         if (!username || !email || !password || !full_name) {
             return res.status(400).json({ error: 'Todos los campos son requeridos' });
         }
@@ -1830,8 +3018,8 @@ app.post('/api/users', authenticateToken, async (req, res) => {
 
         if (userCount[0].count >= company[0].user_limit) {
             connection.end();
-            return res.status(400).json({ 
-                error: `Límite de usuarios alcanzado. Máximo permitido: ${company[0].user_limit}` 
+            return res.status(400).json({
+                error: `Límite de usuarios alcanzado. Máximo permitido: ${company[0].user_limit}`
             });
         }
 
@@ -1992,13 +3180,13 @@ app.post('/api/users', authenticateToken, async (req, res) => {
         }
 
         connection.end();
-        
+
         console.log(`Usuario creado - Credenciales enviadas:`, { username, password });
-        
-        res.json({ 
+
+        res.json({
             success: true,
             message: 'Usuario creado exitosamente',
-            id: result.insertId 
+            id: result.insertId
         });
     } catch (error) {
         if (connection) connection.end();
@@ -2055,8 +3243,8 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
 
         await connection.execute(updateQuery, queryParams);
         connection.end();
-        
-        res.json({ 
+
+        res.json({
             success: true,
             message: 'Usuario actualizado exitosamente'
         });
@@ -2101,7 +3289,7 @@ app.get('/api/users/:id/available-inventories', authenticateToken, async (req, r
         `, [req.user.company_id, userId]);
 
         connection.end();
-        
+
         res.json(inventories);
     } catch (error) {
         console.error('Error getting available inventories:', error);
@@ -2137,7 +3325,7 @@ app.get('/api/users/:id/assigned-inventories', authenticateToken, async (req, re
         `, [userId]);
 
         connection.end();
-        
+
         res.json(inventories);
     } catch (error) {
         console.error('Error getting assigned inventories:', error);
@@ -2181,8 +3369,8 @@ app.post('/api/users/:userId/assign-inventory/:inventoryId', authenticateToken, 
         );
 
         connection.end();
-        
-        res.json({ 
+
+        res.json({
             success: true,
             message: 'Inventario asignado exitosamente'
         });
@@ -2210,8 +3398,8 @@ app.delete('/api/users/:userId/assign-inventory/:inventoryId', authenticateToken
         );
 
         connection.end();
-        
-        res.json({ 
+
+        res.json({
             success: true,
             message: 'Asignación removida exitosamente'
         });
@@ -2224,133 +3412,133 @@ app.delete('/api/users/:userId/assign-inventory/:inventoryId', authenticateToken
 
 // Ruta para enviar correos
 app.post('/api/email/send', authenticateToken, async (req, res) => {
-  try {
-    const { to, subject, html } = req.body;
-    console.log('📧 Solicitando envío a:', to);
-    
-    const result = await sendEmail({ to, subject, html });
-    
-    if (result.success) {
-      res.json({ 
-        success: true, 
-        message: 'Correo enviado exitosamente',
-        messageId: result.messageId
-      });
-    } else {
-      res.status(500).json({ 
-        success: false, 
-        error: result.error || 'Error enviando correo' 
-      });
+    try {
+        const { to, subject, html } = req.body;
+        console.log('📧 Solicitando envío a:', to);
+
+        const result = await sendEmail({ to, subject, html });
+
+        if (result.success) {
+            res.json({
+                success: true,
+                message: 'Correo enviado exitosamente',
+                messageId: result.messageId
+            });
+        } else {
+            res.status(500).json({
+                success: false,
+                error: result.error || 'Error enviando correo'
+            });
+        }
+    } catch (error) {
+        console.error('❌ Error en API de email:', error.message);
+        res.status(500).json({
+            success: false,
+            error: 'Error enviando correo: ' + error.message
+        });
     }
-  } catch (error) {
-    console.error('❌ Error en API de email:', error.message);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Error enviando correo: ' + error.message 
-    });
-  }
 });
 
 // Eliminar usuario (solo admin)
 app.delete('/api/users/:id', authenticateToken, async (req, res) => {
-  let connection;
-  try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'No tienes permisos para eliminar usuarios' });
+    let connection;
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ error: 'No tienes permisos para eliminar usuarios' });
+        }
+
+        const userId = req.params.id;
+
+        // No permitir eliminar el propio usuario
+        if (parseInt(userId) === req.user.id) {
+            return res.status(400).json({ error: 'No puedes eliminar tu propio usuario' });
+        }
+
+        connection = await mysql.createConnection(dbConfig);
+
+        // Verificar que el usuario existe y pertenece a la misma empresa
+        const [existingUsers] = await connection.execute(
+            'SELECT id FROM users WHERE id = ? AND company_id = ?',
+            [userId, req.user.company_id]
+        );
+
+        if (existingUsers.length === 0) {
+            connection.end();
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+
+        // En lugar de eliminar físicamente, marcamos como inactivo
+        await connection.execute(
+            'UPDATE users SET is_active = FALSE WHERE id = ?',
+            [userId]
+        );
+
+        connection.end();
+
+        console.log(`Usuario desactivado: ${userId}`);
+
+        res.json({
+            success: true,
+            message: 'Usuario desactivado exitosamente'
+        });
+    } catch (error) {
+        if (connection) connection.end();
+        console.error('Error deleting user:', error);
+        res.status(500).json({ error: 'Error del servidor' });
     }
-
-    const userId = req.params.id;
-
-    // No permitir eliminar el propio usuario
-    if (parseInt(userId) === req.user.id) {
-      return res.status(400).json({ error: 'No puedes eliminar tu propio usuario' });
-    }
-
-    connection = await mysql.createConnection(dbConfig);
-
-    // Verificar que el usuario existe y pertenece a la misma empresa
-    const [existingUsers] = await connection.execute(
-      'SELECT id FROM users WHERE id = ? AND company_id = ?',
-      [userId, req.user.company_id]
-    );
-
-    if (existingUsers.length === 0) {
-      connection.end();
-      return res.status(404).json({ error: 'Usuario no encontrado' });
-    }
-
-    // En lugar de eliminar físicamente, marcamos como inactivo
-    await connection.execute(
-      'UPDATE users SET is_active = FALSE WHERE id = ?',
-      [userId]
-    );
-
-    connection.end();
-    
-    console.log(`Usuario desactivado: ${userId}`);
-    
-    res.json({ 
-      success: true,
-      message: 'Usuario desactivado exitosamente'
-    });
-  } catch (error) {
-    if (connection) connection.end();
-    console.error('Error deleting user:', error);
-    res.status(500).json({ error: 'Error del servidor' });
-  }
 });
 
 // Ruta para recuperación de contraseña - VERSIÓN DEFINITIVA
 app.post('/api/forgot-password', async (req, res) => {
-  let connection;
-  try {
-    const { email } = req.body;
-    console.log('🔑 Solicitud de recuperación para:', email);
+    let connection;
+    try {
+        const { email } = req.body;
+        console.log('🔑 Solicitud de recuperación para:', email);
 
-    if (!email) {
-      return res.status(400).json({ error: 'Email es requerido' });
-    }
+        if (!email) {
+            return res.status(400).json({ error: 'Email es requerido' });
+        }
 
-    connection = await mysql.createConnection(dbConfig);
-    
-    // Buscar usuario
-    const [users] = await connection.execute(
-      `SELECT u.*, c.name as company_name 
+        connection = await mysql.createConnection(dbConfig);
+
+        // Buscar usuario
+        const [users] = await connection.execute(
+            `SELECT u.*, c.name as company_name 
        FROM users u 
        LEFT JOIN companies c ON u.company_id = c.id 
        WHERE u.email = ? AND u.is_active = TRUE`,
-      [email]
-    );
+            [email]
+        );
 
-    // Siempre responder éxito por seguridad
-    if (users.length === 0) {
-      connection.end();
-      console.log('📧 Email no encontrado, pero respondiendo con éxito por seguridad');
-      return res.json({ 
-        success: true, 
-        message: 'Si el email existe en nuestro sistema, se enviaron las instrucciones' 
-      });
-    }
+        // Siempre responder éxito por seguridad
+        if (users.length === 0) {
+            connection.end();
+            console.log('📧 Email no encontrado, pero respondiendo con éxito por seguridad');
+            return res.json({
+                success: true,
+                message: 'Si el email existe en nuestro sistema, se enviaron las instrucciones'
+            });
+        }
 
-    const user = users[0];
-    
-    // ✅ GENERAR CONTRASEÑA TEMPORAL NUEVA
-    const temporaryPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
-    console.log('🔐 Contraseña temporal generada:', temporaryPassword);
-    
-    // ✅ HASHEAR LA NUEVA CONTRASEÑA
-    const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
-    
-    // ✅ ACTUALIZAR LA CONTRASEÑA EN LA BASE DE DATOS
-    await connection.execute(
-      'UPDATE users SET password = ? WHERE id = ?',
-      [hashedPassword, user.id]
-    );
-    
-    console.log('✅ Contraseña temporal actualizada en la base de datos');
+        const user = users[0];
 
-    // HTML del correo de recuperación - VERSIÓN QUE SÍ ENVÍA LA CONTRASEÑA
-    const html = `
+        // ✅ GENERAR CONTRASEÑA TEMPORAL NUEVA
+        const temporaryPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
+        console.log('🔐 Contraseña temporal generada:', temporaryPassword);
+
+        // ✅ HASHEAR LA NUEVA CONTRASEÑA
+        const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
+
+        // ✅ ACTUALIZAR LA CONTRASEÑA EN LA BASE DE DATOS
+        await connection.execute(
+            'UPDATE users SET password = ? WHERE id = ?',
+            [hashedPassword, user.id]
+        );
+
+        console.log('✅ Contraseña temporal actualizada en la base de datos');
+
+        // HTML del correo de recuperación - VERSIÓN QUE SÍ ENVÍA LA CONTRASEÑA
+        const html = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -2466,33 +3654,33 @@ app.post('/api/forgot-password', async (req, res) => {
       </html>
     `;
 
-    // Enviar email
-    console.log('📧 Enviando email con contraseña temporal...');
-    const emailResult = await sendEmail({
-      to: email,
-      subject: '🔐 Recuperación de contraseña - Sistema de Inventario',
-      html: html
-    });
+        // Enviar email
+        console.log('📧 Enviando email con contraseña temporal...');
+        const emailResult = await sendEmail({
+            to: email,
+            subject: '🔐 Recuperación de contraseña - Sistema de Inventario',
+            html: html
+        });
 
-    connection.end();
-    
-    console.log('✅ Proceso de recuperación completado para:', email);
-    console.log('🔐 Contraseña temporal enviada:', temporaryPassword);
-    
-    res.json({ 
-      success: true, 
-      message: 'Se ha enviado un correo con una contraseña temporal' 
-    });
-    
-  } catch (error) {
-    if (connection) connection.end();
-    console.error('❌ Error en recuperación:', error);
-    // Por seguridad, siempre responder éxito
-    res.json({ 
-      success: true, 
-      message: 'Si el email existe en nuestro sistema, se han enviado las instrucciones' 
-    });
-  }
+        connection.end();
+
+        console.log('✅ Proceso de recuperación completado para:', email);
+        console.log('🔐 Contraseña temporal enviada:', temporaryPassword);
+
+        res.json({
+            success: true,
+            message: 'Se ha enviado un correo con una contraseña temporal'
+        });
+
+    } catch (error) {
+        if (connection) connection.end();
+        console.error('❌ Error en recuperación:', error);
+        // Por seguridad, siempre responder éxito
+        res.json({
+            success: true,
+            message: 'Si el email existe en nuestro sistema, se han enviado las instrucciones'
+        });
+    }
 });
 
 // Health check
@@ -2501,20 +3689,215 @@ app.get('/api/health', async (req, res) => {
         const connection = await mysql.createConnection(dbConfig);
         await connection.execute('SELECT 1');
         connection.end();
-        
-        res.json({ 
-            status: 'OK', 
+
+        res.json({
+            status: 'OK',
             message: 'Servidor y base de datos funcionando correctamente',
             timestamp: new Date().toISOString()
         });
     } catch (error) {
-        res.status(500).json({ 
-            status: 'ERROR', 
-            message: 'Error en la base de datos: ' + error.message 
+        res.status(500).json({
+            status: 'ERROR',
+            message: 'Error en la base de datos: ' + error.message
         });
     }
 });
 
+// ==============================================
+// 📌 RUTA PARA LEER COLUMNAS DE UN EXCEL
+// ==============================================
+app.post('/api/utils/excel-columns', upload.single('file'), async (req, res) => {
+    try {
+        console.log('📊 Procesando archivo Excel para leer columnas...');
+
+        if (!req.file) {
+            return res.status(400).json({ error: "No se subió ningún archivo" });
+        }
+
+        const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+
+        // Obtener primera fila como headers
+        const range = XLSX.utils.decode_range(worksheet['!ref']);
+        const headers = [];
+
+        for (let col = range.s.c; col <= range.e.c; col++) {
+            const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+            const cell = worksheet[cellAddress];
+            headers.push(cell ? cell.v : `Columna ${col + 1}`);
+        }
+
+        console.log('📊 Columnas encontradas:', headers);
+
+        res.json({
+            success: true,
+            columns: headers.filter(header => header && header.toString().trim() !== ''),
+            totalColumns: headers.length,
+            fileName: req.file.originalname,
+            sheetName: sheetName
+        });
+
+    } catch (error) {
+        console.error("❌ Error leyendo Excel:", error);
+        res.status(500).json({
+            error: "Error al procesar el archivo Excel",
+            details: error.message
+        });
+    }
+});
+
+// ==============================================
+// 📌 RUTA PARA SUBIR EXCEL CON MAPEO DE COLUMNAS
+// ==============================================
+app.post('/api/inventories/:id/upload-with-mapping', authenticateToken, upload.single('file'), async (req, res) => {
+    let connection;
+    try {
+        const inventoryId = req.params.id;
+        const { column_mapping } = req.body;
+        const file = req.file;
+
+        console.log('📤 Subiendo archivo con mapeo para inventario:', inventoryId);
+
+        if (!file) {
+            return res.status(400).json({ error: 'No se proporcionó archivo' });
+        }
+
+        connection = await mysql.createConnection(dbConfig);
+
+        // Verificar permisos
+        let query, params;
+        if (req.user.role === 'admin') {
+            query = 'SELECT * FROM inventories WHERE id = ? AND company_id = ?';
+            params = [inventoryId, req.user.company_id];
+        } else {
+            query = `
+                SELECT i.* FROM user_inventories ui
+                INNER JOIN inventories i ON ui.inventory_id = i.id
+                WHERE ui.user_id = ? AND i.id = ? AND ui.can_upload = TRUE
+            `;
+            params = [req.user.id, inventoryId];
+        }
+
+        const [inventories] = await connection.execute(query, params);
+
+        if (inventories.length === 0) {
+            connection.end();
+            return res.status(404).json({ error: 'Inventario no encontrado o sin permisos' });
+        }
+
+        // Parsear mapeo
+        let mapping;
+        try {
+            mapping = JSON.parse(column_mapping || '{}');
+        } catch (error) {
+            connection.end();
+            return res.status(400).json({ error: 'Formato de mapeo inválido' });
+        }
+
+        // Validar mapeo
+        if (!mapping.barcode) {
+            connection.end();
+            return res.status(400).json({ error: 'Se debe mapear la columna de código de barras' });
+        }
+
+        // Leer Excel
+        const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const data = XLSX.utils.sheet_to_json(worksheet);
+
+        if (data.length === 0) {
+            connection.end();
+            return res.status(400).json({ error: 'El archivo está vacío' });
+        }
+
+        let processed = 0;
+        let errors = 0;
+        const errorsList = [];
+
+        console.log(`Procesando ${data.length} filas con mapeo...`);
+
+        for (const [index, row] of data.entries()) {
+            try {
+                const barcode = row[mapping.barcode] ? String(row[mapping.barcode]).trim() : null;
+
+                if (!barcode) {
+                    errors++;
+                    errorsList.push(`Fila ${index + 2}: Sin código de barras`);
+                    continue;
+                }
+
+                const productData = {
+                    sku: mapping.sku && row[mapping.sku] ? String(row[mapping.sku]) : null,
+                    product_name: mapping.product_name && row[mapping.product_name] ? String(row[mapping.product_name]) : null,
+                    expected_stock: mapping.expected_stock && row[mapping.expected_stock] ? parseInt(row[mapping.expected_stock]) || 0 : 0,
+                    description: mapping.description && row[mapping.description] ? String(row[mapping.description]) : null,
+                    category: mapping.category && row[mapping.category] ? String(row[mapping.category]) : null
+                };
+
+                await connection.execute(
+                    `INSERT INTO inventory_products 
+                    (inventory_id, barcode, sku, product_name, expected_stock, description, category) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE
+                    sku = VALUES(sku), 
+                    product_name = VALUES(product_name), 
+                    expected_stock = VALUES(expected_stock),
+                    description = VALUES(description),
+                    category = VALUES(category)`,
+                    [
+                        inventoryId,
+                        barcode,
+                        productData.sku,
+                        productData.product_name,
+                        productData.expected_stock,
+                        productData.description,
+                        productData.category
+                    ]
+                );
+                processed++;
+            } catch (rowError) {
+                errors++;
+                errorsList.push(`Fila ${index + 2}: ${rowError.message}`);
+            }
+        }
+
+        await connection.execute(
+            'UPDATE inventories SET total_products = ? WHERE id = ?',
+            [processed, inventoryId]
+        );
+
+        connection.end();
+
+        console.log(`Archivo procesado con mapeo: ${processed} éxito, ${errors} errores`);
+
+        const response = {
+            success: true,
+            message: `Se procesaron ${processed} productos exitosamente`,
+            processed,
+            errors,
+            totalRows: data.length
+        };
+
+        if (errors > 0) {
+            response.errorDetails = errorsList.slice(0, 10);
+        }
+
+        res.json(response);
+
+    } catch (error) {
+        if (connection) connection.end();
+        console.error('Error procesando archivo con mapeo:', error);
+        res.status(500).json({ error: 'Error procesando archivo: ' + error.message });
+    }
+});
+
+// ==============================================
+// 📌 ESTO VA AL FINAL - INICIAR SERVIDOR
+// ==============================================
+
+// Iniciar servidor
 app.listen(PORT, () => {
     console.log(`Servidor corriendo en puerto ${PORT}`);
     console.log(`Sistema de Inventario con SuperAdmin`);

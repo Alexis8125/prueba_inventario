@@ -1,7 +1,7 @@
 // src/services/api.js - MÉTODOS COMPLETOS Y CORREGIDOS
 class ApiService {
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_BASE_URL || '/api'
+    this.baseURL = 'http://localhost:3000/api'
   }
 
   getFullUrl(endpoint) {

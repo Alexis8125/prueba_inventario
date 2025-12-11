@@ -7,6 +7,9 @@ import UsersView from '@/views/UsersView.vue'
 import SuperAdminView from '@/views/SuperAdminView.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import ProductsView from '@/views/ProductsView.vue' // Nueva importación
+import SalesView from '@/views/SalesView.vue'
+
+
 
 const routes = [
   {
@@ -64,6 +67,13 @@ const routes = [
   {
     path: '/inventory/:id/products',
     redirect: to => ({ path: `/inventario/${to.params.id}/productos` })
+  },
+  // Agrega esta ruta al array de routes:
+  {
+    path: '/ventas',
+    name: 'ventas',
+    component: SalesView,
+    meta: { requiresAuth: true }
   }
 ]
 
@@ -109,5 +119,6 @@ router.beforeEach((to, from, next) => {
 router.onError((error) => {
   console.error('Router error:', error)
 })
+
 
 export default router

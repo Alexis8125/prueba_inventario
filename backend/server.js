@@ -207,6 +207,714 @@ const sendEmail = async (mailOptions) => {
 };
 
 // ==============================================
+// 🛒 MÓDULO DE VENTAS (AHORA ANTES DE app.listen())
+// ==============================================
+
+// Función para generar número de factura
+const generateInvoiceNumber = (companyId) => {
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    return `FACT-${companyId}-${year}${month}${day}-${random}`;
+};
+
+// Obtener productos disponibles para venta (con stock > 0)
+app.get('/api/sales/products', authenticateToken, async (req, res) => {
+    try {
+        const connection = await mysql.createConnection(dbConfig);
+
+        const [products] = await connection.execute(`
+            SELECT 
+                ip.id,
+                ip.barcode,
+                ip.sku,
+                ip.product_name as name,
+                ip.description,
+                ip.expected_stock as current_stock,
+                ip.category,
+                ip.location,
+                i.name as inventory_name
+            FROM inventory_products ip
+            INNER JOIN inventories i ON ip.inventory_id = i.id
+            WHERE i.company_id = ? 
+            AND ip.expected_stock > 0
+            ORDER BY ip.product_name
+        `, [req.user.company_id]);
+
+        connection.end();
+        res.json(products);
+    } catch (error) {
+        console.error('Error getting products for sale:', error);
+        res.status(500).json({ error: 'Error del servidor' });
+    }
+});
+
+// Buscar producto por código para venta
+app.get('/api/sales/products/search', authenticateToken, async (req, res) => {
+    try {
+        const { barcode, search } = req.query;
+        const connection = await mysql.createConnection(dbConfig);
+
+        let query, params;
+
+        if (barcode) {
+            // Búsqueda por código de barras exacto
+            query = `
+                SELECT 
+                    ip.id,
+                    ip.barcode,
+                    ip.sku,
+                    ip.product_name as name,
+                    ip.description,
+                    ip.expected_stock as current_stock,
+                    ip.category,
+                    ip.location,
+                    i.name as inventory_name
+                FROM inventory_products ip
+                INNER JOIN inventories i ON ip.inventory_id = i.id
+                WHERE i.company_id = ? 
+                AND ip.barcode = ?
+                AND ip.expected_stock > 0
+                LIMIT 1
+            `;
+            params = [req.user.company_id, barcode];
+        } else if (search) {
+            // Búsqueda por nombre o SKU
+            query = `
+                SELECT 
+                    ip.id,
+                    ip.barcode,
+                    ip.sku,
+                    ip.product_name as name,
+                    ip.description,
+                    ip.expected_stock as current_stock,
+                    ip.category,
+                    ip.location,
+                    i.name as inventory_name
+                FROM inventory_products ip
+                INNER JOIN inventories i ON ip.inventory_id = i.id
+                WHERE i.company_id = ? 
+                AND (ip.product_name LIKE ? OR ip.barcode LIKE ? OR ip.sku LIKE ?)
+                AND ip.expected_stock > 0
+                LIMIT 10
+            `;
+            params = [req.user.company_id, `%${search}%`, `%${search}%`, `%${search}%`];
+        } else {
+            connection.end();
+            return res.status(400).json({ error: 'Parámetro de búsqueda requerido' });
+        }
+
+        const [products] = await connection.execute(query, params);
+        connection.end();
+
+        res.json(products);
+    } catch (error) {
+        console.error('Error searching product:', error);
+        res.status(500).json({ error: 'Error del servidor' });
+    }
+});
+
+// Obtener historial de ventas
+app.get('/api/sales', authenticateToken, async (req, res) => {
+    try {
+        const { startDate, endDate, limit = 50 } = req.query;
+        const connection = await mysql.createConnection(dbConfig);
+
+        let query = `
+            SELECT 
+                s.*,
+                u.full_name as created_by_name,
+                COUNT(si.id) as total_items,
+                SUM(si.quantity) as total_quantity
+            FROM sales s
+            LEFT JOIN users u ON s.created_by = u.id
+            LEFT JOIN sale_items si ON s.id = si.sale_id
+            WHERE s.company_id = ?
+        `;
+
+        let params = [req.user.company_id];
+
+        if (startDate) {
+            query += ' AND DATE(s.created_at) >= ?';
+            params.push(startDate);
+        }
+
+        if (endDate) {
+            query += ' AND DATE(s.created_at) <= ?';
+            params.push(endDate);
+        }
+
+        query += ' GROUP BY s.id ORDER BY s.created_at DESC LIMIT ?';
+        params.push(parseInt(limit));
+
+        const [sales] = await connection.execute(query, params);
+        connection.end();
+
+        res.json(sales);
+    } catch (error) {
+        console.error('Error getting sales:', error);
+        res.status(500).json({ error: 'Error del servidor' });
+    }
+});
+
+// Obtener detalles de una venta específica
+app.get('/api/sales/:id', authenticateToken, async (req, res) => {
+    try {
+        const saleId = req.params.id;
+        const connection = await mysql.createConnection(dbConfig);
+
+        // Obtener encabezado de la venta
+        const [sales] = await connection.execute(`
+            SELECT s.*, u.full_name as created_by_name
+            FROM sales s
+            LEFT JOIN users u ON s.created_by = u.id
+            WHERE s.id = ? AND s.company_id = ?
+        `, [saleId, req.user.company_id]);
+
+        if (sales.length === 0) {
+            connection.end();
+            return res.status(404).json({ error: 'Venta no encontrada' });
+        }
+
+        // Obtener items de la venta
+        const [items] = await connection.execute(`
+            SELECT 
+                si.*,
+                ip.barcode,
+                ip.product_name,
+                ip.category
+            FROM sale_items si
+            LEFT JOIN inventory_products ip ON si.product_id = ip.id
+            WHERE si.sale_id = ?
+            ORDER BY si.id
+        `, [saleId]);
+
+        connection.end();
+
+        res.json({
+            sale: sales[0],
+            items: items
+        });
+    } catch (error) {
+        console.error('Error getting sale details:', error);
+        res.status(500).json({ error: 'Error del servidor' });
+    }
+});
+
+// Crear nueva venta - VERSIÓN CORREGIDA
+app.post('/api/sales', authenticateToken, async (req, res) => {
+    let connection;
+    try {
+        const {
+            customer_name = 'Cliente General',
+            customer_document,
+            customer_phone,
+            customer_email,
+            payment_method = 'efectivo',
+            items = []
+        } = req.body;
+
+        console.log('🛒 Creando nueva venta para empresa:', req.user.company_id);
+        console.log('📦 Productos recibidos:', items);
+
+        if (!items || items.length === 0) {
+            return res.status(400).json({ error: 'No hay productos en la venta' });
+        }
+
+        // Validar que todos los productos tengan stock suficiente
+        let totalSubtotal = 0;
+        const validatedItems = [];
+
+        for (const item of items) {
+            console.log('🔍 Validando item:', item);
+
+            if (!item.product_id || !item.quantity || item.quantity <= 0 || !item.unit_price) {
+                return res.status(400).json({
+                    error: 'Datos de productos inválidos',
+                    details: `Producto: ${item.product_name || 'Sin nombre'}, Cantidad: ${item.quantity}, Precio: ${item.unit_price}`
+                });
+            }
+
+            // Calcular subtotal
+            const subtotal = item.quantity * item.unit_price;
+            totalSubtotal += subtotal;
+
+            validatedItems.push({
+                ...item,
+                subtotal: subtotal
+            });
+        }
+
+        console.log('💰 Totales calculados:', {
+            subtotal: totalSubtotal,
+            items: validatedItems.length
+        });
+
+        // Calcular impuestos (16% IVA)
+        const taxRate = 0.16;
+        const tax = totalSubtotal * taxRate;
+        const total = totalSubtotal + tax;
+
+        connection = await mysql.createConnection(dbConfig);
+        await connection.beginTransaction();
+
+        try {
+            // 1. Generar número de factura
+            const invoiceNumber = generateInvoiceNumber(req.user.company_id);
+            console.log('📄 Número de factura generado:', invoiceNumber);
+
+            // 2. Crear registro de venta - CORREGIDO
+            const [saleResult] = await connection.execute(`
+                INSERT INTO sales (
+                    invoice_number, company_id, customer_name, customer_document, 
+                    customer_phone, customer_email, subtotal, tax, total, 
+                    payment_method, created_by
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, [
+                invoiceNumber,
+                req.user.company_id,
+                customer_name,
+                customer_document || null,
+                customer_phone || null,
+                customer_email || null,
+                totalSubtotal.toFixed(2),
+                tax.toFixed(2),
+                total.toFixed(2),
+                payment_method,
+                req.user.id
+            ]);
+
+            const saleId = saleResult.insertId;
+            console.log('✅ Venta creada con ID:', saleId, 'Factura:', invoiceNumber);
+
+            // 3. Crear items de venta y actualizar stock
+            for (const item of validatedItems) {
+                console.log('📦 Procesando producto:', {
+                    id: item.product_id,
+                    nombre: item.product_name,
+                    cantidad: item.quantity,
+                    precio: item.unit_price
+                });
+
+                // Verificar stock disponible antes de descontar
+                const [stockCheck] = await connection.execute(
+                    'SELECT expected_stock FROM inventory_products WHERE id = ?',
+                    [item.product_id]
+                );
+
+                if (stockCheck.length === 0) {
+                    throw new Error(`Producto no encontrado: ${item.product_name}`);
+                }
+
+                const currentStock = stockCheck[0].expected_stock;
+                if (currentStock < item.quantity) {
+                    throw new Error(`Stock insuficiente para ${item.product_name}: ${currentStock} disponible, ${item.quantity} solicitado`);
+                }
+
+                // Insertar item de venta
+                await connection.execute(`
+                    INSERT INTO sale_items (
+                        sale_id, product_id, barcode, product_name, 
+                        quantity, unit_price, subtotal
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                `, [
+                    saleId,
+                    item.product_id,
+                    item.barcode || '',
+                    item.product_name,
+                    item.quantity,
+                    item.unit_price.toFixed(2),
+                    item.subtotal.toFixed(2)
+                ]);
+
+                // Descontar del inventario
+                await connection.execute(`
+                    UPDATE inventory_products 
+                    SET expected_stock = expected_stock - ? 
+                    WHERE id = ? AND expected_stock >= ?
+                `, [item.quantity, item.product_id, item.quantity]);
+
+                console.log(`✅ Stock actualizado para ${item.product_name}`);
+            }
+
+            // 4. Obtener datos completos de la venta creada
+            const [saleDetails] = await connection.execute(`
+                SELECT s.*, u.full_name as created_by_name
+                FROM sales s
+                LEFT JOIN users u ON s.created_by = u.id
+                WHERE s.id = ?
+            `, [saleId]);
+
+            const [saleItems] = await connection.execute(`
+                SELECT si.* FROM sale_items si WHERE si.sale_id = ?
+            `, [saleId]);
+
+            await connection.commit();
+            connection.end();
+
+            console.log('🎉 Venta completada exitosamente:', {
+                venta_id: saleId,
+                factura: invoiceNumber,
+                total_productos: validatedItems.length,
+                total_venta: total
+            });
+
+            res.json({
+                success: true,
+                message: 'Venta registrada exitosamente',
+                sale: saleDetails[0],
+                items: saleItems,
+                invoice_number: invoiceNumber
+            });
+
+        } catch (error) {
+            await connection.rollback();
+            console.error('❌ Error en transacción:', error);
+            throw error;
+        }
+
+    } catch (error) {
+        if (connection) {
+            try {
+                await connection.rollback();
+            } catch (rollbackError) {
+                console.error('Error en rollback:', rollbackError);
+            }
+            connection.end();
+        }
+        console.error('❌ Error creando venta:', error);
+        res.status(500).json({
+            error: 'Error del servidor: ' + error.message,
+            details: error.message
+        });
+    }
+});
+
+// Generar factura/recibo (PDF o HTML)
+app.get('/api/sales/:id/invoice', authenticateToken, async (req, res) => {
+    try {
+        const saleId = req.params.id;
+        const format = req.query.format || 'html';
+        const connection = await mysql.createConnection(dbConfig);
+
+        // Obtener datos de la venta
+        const [sales] = await connection.execute(`
+            SELECT 
+                s.*,
+                u.full_name as seller_name,
+                u.email as seller_email,
+                c.name as company_name,
+                c.address as company_address,
+                c.phone as company_phone
+            FROM sales s
+            LEFT JOIN users u ON s.created_by = u.id
+            LEFT JOIN companies c ON s.company_id = c.id
+            WHERE s.id = ? AND s.company_id = ?
+        `, [saleId, req.user.company_id]);
+
+        if (sales.length === 0) {
+            connection.end();
+            return res.status(404).json({ error: 'Venta no encontrada' });
+        }
+
+        const sale = sales[0];
+
+        // Obtener items de la venta
+        const [items] = await connection.execute(`
+            SELECT si.* FROM sale_items si WHERE si.sale_id = ?
+        `, [saleId]);
+
+        connection.end();
+
+        // Generar HTML de la factura
+        const invoiceHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>Factura ${sale.invoice_number}</title>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        margin: 0;
+                        padding: 20px;
+                        color: #333;
+                    }
+                    .invoice-container {
+                        max-width: 800px;
+                        margin: 0 auto;
+                        border: 1px solid #ddd;
+                        padding: 30px;
+                        background: white;
+                    }
+                    .header {
+                        display: flex;
+                        justify-content: space-between;
+                        margin-bottom: 30px;
+                        border-bottom: 2px solid #8557FB;
+                        padding-bottom: 20px;
+                    }
+                    .company-info h2 {
+                        color: #8557FB;
+                        margin: 0 0 10px 0;
+                    }
+                    .invoice-info h1 {
+                        margin: 0;
+                        color: #333;
+                    }
+                    .details {
+                        margin-bottom: 30px;
+                    }
+                    .details-grid {
+                        display: grid;
+                        grid-template-columns: repeat(2, 1fr);
+                        gap: 20px;
+                        margin-bottom: 20px;
+                    }
+                    .items-table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin: 20px 0;
+                    }
+                    .items-table th {
+                        background: #8557FB;
+                        color: white;
+                        padding: 10px;
+                        text-align: left;
+                    }
+                    .items-table td {
+                        padding: 10px;
+                        border-bottom: 1px solid #ddd;
+                    }
+                    .items-table tr:nth-child(even) {
+                        background: #f9f9f9;
+                    }
+                    .totals {
+                        margin-top: 30px;
+                        text-align: right;
+                    }
+                    .totals table {
+                        margin-left: auto;
+                        width: 300px;
+                    }
+                    .totals td {
+                        padding: 8px;
+                        border-bottom: 1px solid #ddd;
+                    }
+                    .totals tr:last-child td {
+                        font-weight: bold;
+                        font-size: 1.2em;
+                        border-top: 2px solid #333;
+                    }
+                    .footer {
+                        margin-top: 40px;
+                        text-align: center;
+                        color: #666;
+                        font-size: 0.9em;
+                    }
+                    @media print {
+                        body { padding: 0; }
+                        .invoice-container { border: none; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="invoice-container">
+                    <div class="header">
+                        <div class="company-info">
+                            <h2>${sale.company_name || 'Sistema de Inventario'}</h2>
+                            ${sale.company_address ? `<p>${sale.company_address}</p>` : ''}
+                            ${sale.company_phone ? `<p>Tel: ${sale.company_phone}</p>` : ''}
+                        </div>
+                        <div class="invoice-info">
+                            <h1>FACTURA</h1>
+                            <p><strong>Número:</strong> ${sale.invoice_number}</p>
+                            <p><strong>Fecha:</strong> ${new Date(sale.created_at).toLocaleDateString('es-ES')}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="details">
+                        <div class="details-grid">
+                            <div>
+                                <h3>Cliente</h3>
+                                <p><strong>Nombre:</strong> ${sale.customer_name}</p>
+                                ${sale.customer_document ? `<p><strong>RUC/DNI:</strong> ${sale.customer_document}</p>` : ''}
+                                ${sale.customer_email ? `<p><strong>Email:</strong> ${sale.customer_email}</p>` : ''}
+                                ${sale.customer_phone ? `<p><strong>Teléfono:</strong> ${sale.customer_phone}</p>` : ''}
+                            </div>
+                            <div>
+                                <h3>Vendedor</h3>
+                                <p><strong>Nombre:</strong> ${sale.seller_name}</p>
+                                <p><strong>Fecha:</strong> ${new Date(sale.created_at).toLocaleString('es-ES')}</p>
+                                <p><strong>Método de pago:</strong> ${sale.payment_method}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Producto</th>
+                                <th>Cantidad</th>
+                                <th>Precio Unitario</th>
+                                <th>Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${items.map(item => `
+                                <tr>
+                                    <td>${item.barcode}</td>
+                                    <td>${item.product_name}</td>
+                                    <td>${item.quantity}</td>
+                                    <td>$${parseFloat(item.unit_price).toFixed(2)}</td>
+                                    <td>$${parseFloat(item.subtotal).toFixed(2)}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    
+                    <div class="totals">
+                        <table>
+                            <tr>
+                                <td>Subtotal:</td>
+                                <td>$${parseFloat(sale.subtotal).toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                                <td>IVA (16%):</td>
+                                <td>$${parseFloat(sale.tax).toFixed(2)}</td>
+                            </tr>
+                            <tr>
+                                <td>Total:</td>
+                                <td>$${parseFloat(sale.total).toFixed(2)}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <div class="footer">
+                        <p>¡Gracias por su compra!</p>
+                        <p>Documento generado automáticamente por Sistema de Inventario</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+
+        if (format === 'html') {
+            res.setHeader('Content-Type', 'text/html');
+            res.send(invoiceHtml);
+        } else {
+            // Para PDF necesitarías una librería como puppeteer o html-pdf
+            res.json({
+                success: true,
+                sale,
+                items,
+                html: invoiceHtml
+            });
+        }
+
+    } catch (error) {
+        console.error('Error generating invoice:', error);
+        res.status(500).json({ error: 'Error del servidor' });
+    }
+});
+
+// ✅ ¡ESTA ES LA RUTA QUE FALTABA!
+// Estadísticas de ventas - VERSIÓN CORREGIDA
+app.get('/api/sales/stats', authenticateToken, async (req, res) => {
+    try {
+        const { period = 'today' } = req.query;
+        const connection = await mysql.createConnection(dbConfig);
+
+        console.log('📊 Obteniendo estadísticas de ventas para periodo:', period, 'company:', req.user.company_id);
+
+        let dateFilter = '';
+        let params = [req.user.company_id];
+
+        if (period === 'today') {
+            dateFilter = 'AND DATE(s.created_at) = CURDATE()';
+        } else if (period === 'week') {
+            dateFilter = 'AND s.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)';
+        } else if (period === 'month') {
+            dateFilter = 'AND s.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)';
+        }
+
+        // Estadísticas generales
+        const [stats] = await connection.execute(`
+            SELECT 
+                COUNT(*) as total_sales,
+                COALESCE(SUM(s.total), 0) as total_revenue,
+                COALESCE(SUM(si.quantity), 0) as total_items_sold,
+                CASE 
+                    WHEN COUNT(*) > 0 THEN COALESCE(SUM(s.total) / COUNT(*), 0)
+                    ELSE 0 
+                END as average_sale
+            FROM sales s
+            LEFT JOIN sale_items si ON s.id = si.sale_id
+            WHERE s.company_id = ? ${dateFilter}
+        `, params);
+
+        // Productos más vendidos
+        const [topProducts] = await connection.execute(`
+            SELECT 
+                si.product_name,
+                si.barcode,
+                SUM(si.quantity) as total_sold,
+                SUM(si.subtotal) as total_revenue
+            FROM sale_items si
+            INNER JOIN sales s ON si.sale_id = s.id
+            WHERE s.company_id = ? ${dateFilter}
+            GROUP BY si.product_id, si.product_name, si.barcode
+            ORDER BY total_sold DESC
+            LIMIT 10
+        `, params);
+
+        // Ventas por día (para gráfico)
+        const [dailySales] = await connection.execute(`
+            SELECT 
+                DATE(s.created_at) as date,
+                COUNT(*) as sales_count,
+                SUM(s.total) as daily_revenue,
+                SUM(si.quantity) as items_sold
+            FROM sales s
+            LEFT JOIN sale_items si ON s.id = si.sale_id
+            WHERE s.company_id = ? ${dateFilter}
+            GROUP BY DATE(s.created_at)
+            ORDER BY date DESC
+            LIMIT 7
+        `, params);
+
+        connection.end();
+
+        const result = {
+            success: true,
+            overview: {
+                total_sales: parseInt(stats[0].total_sales) || 0,
+                total_revenue: parseFloat(stats[0].total_revenue) || 0,
+                total_items_sold: parseInt(stats[0].total_items_sold) || 0,
+                average_sale: parseFloat(stats[0].average_sale) || 0
+            },
+            top_products: topProducts || [],
+            daily_sales: dailySales || [],
+            period: period
+        };
+
+        console.log('✅ Estadísticas obtenidas:', result.overview);
+        res.json(result);
+        
+    } catch (error) {
+        console.error('❌ Error getting sales stats:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Error del servidor al obtener estadísticas',
+            details: error.message 
+        });
+    }
+});
+
+// ==============================================
 // RUTAS DE SUPERADMIN
 // ==============================================
 
@@ -1482,7 +2190,7 @@ app.get('/api/inventories/:id/products', authenticateToken, async (req, res) => 
         `, [inventoryId]);
 
         connection.end();
-        
+
         // Devolver tanto los productos como el nombre del inventario
         res.json({
             products: products,
@@ -1675,10 +2383,10 @@ app.post('/api/inventories/:id/products', authenticateToken, async (req, res) =>
         const inventoryId = req.params.id;
         // Aceptar tanto 'name' como 'product_name', 'expected_quantity' como 'expected_stock'
         const { barcode, sku, name, product_name, expected_quantity, expected_stock, category, description } = req.body;
-        
+
         const finalProductName = product_name || name;
         const finalExpectedStock = expected_stock !== undefined ? expected_stock : (expected_quantity || 0);
-        
+
         if (!barcode || !finalProductName) {
             return res.status(400).json({ error: 'Barcode y product_name son requeridos' });
         }
@@ -1723,7 +2431,7 @@ app.post('/api/inventories/:id/products', authenticateToken, async (req, res) =>
         `, [result.insertId]);
 
         connection.end();
-        
+
         res.status(201).json({
             message: 'Producto agregado exitosamente',
             product: newProduct[0]
@@ -3009,11 +3717,11 @@ app.post('/api/utils/excel-columns', upload.single('file'), async (req, res) => 
         const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        
+
         // Obtener primera fila como headers
         const range = XLSX.utils.decode_range(worksheet['!ref']);
         const headers = [];
-        
+
         for (let col = range.s.c; col <= range.e.c; col++) {
             const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
             const cell = worksheet[cellAddress];
@@ -3032,9 +3740,9 @@ app.post('/api/utils/excel-columns', upload.single('file'), async (req, res) => 
 
     } catch (error) {
         console.error("❌ Error leyendo Excel:", error);
-        res.status(500).json({ 
+        res.status(500).json({
             error: "Error al procesar el archivo Excel",
-            details: error.message 
+            details: error.message
         });
     }
 });
@@ -3184,6 +3892,10 @@ app.post('/api/inventories/:id/upload-with-mapping', authenticateToken, upload.s
         res.status(500).json({ error: 'Error procesando archivo: ' + error.message });
     }
 });
+
+// ==============================================
+// 📌 ESTO VA AL FINAL - INICIAR SERVIDOR
+// ==============================================
 
 // Iniciar servidor
 app.listen(PORT, () => {

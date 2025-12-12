@@ -30,7 +30,7 @@ const dbConfig = {
 
 // Configuración de Multer
 const storage = multer.memoryStorage();
-const upload = multer({ 
+const upload = multer({
     storage: storage,
     limits: {
         fileSize: 10 * 1024 * 1024
@@ -49,15 +49,15 @@ const authenticateToken = async (req, res, next) => {
 
         const decoded = jwt.verify(token, 'your-secret-key');
         const connection = await mysql.createConnection(dbConfig);
-        
+       
         const [users] = await connection.execute(
-            `SELECT u.*, c.name as company_name, c.user_limit 
-             FROM users u 
-             LEFT JOIN companies c ON u.company_id = c.id 
+            `SELECT u.*, c.name as company_name, c.user_limit
+             FROM users u
+             LEFT JOIN companies c ON u.company_id = c.id
              WHERE u.id = ? AND u.is_active = TRUE`,
             [decoded.userId]
         );
-        
+       
         connection.end();
 
         if (users.length === 0) {
@@ -103,6 +103,12 @@ const createTransporter = () => {
         user: EMAIL_CONFIG.user,
         pass: EMAIL_CONFIG.pass
       },
+      // Agregar estas opciones para SSL
+      tls: {
+        rejectUnauthorized: false  // Ignora certificados no confiables
+      },
+      // Opcional: forzar TLSv1.2 o superior
+      secureProtocol: 'TLSv1_2_method',
       debug: true,
       logger: false
     });
@@ -116,6 +122,7 @@ const createTransporter = () => {
         console.log('   2. Asegúrate de usar "Contraseña de aplicación" de Google');
         console.log('   3. Revisa que la verificación en 2 pasos esté ACTIVADA');
         console.log('   4. Genera una NUEVA contraseña si es necesario');
+        console.log('   5. Error SSL: ', error.message);
       } else {
         console.log('✅ ✅ ✅ CONEXIÓN CON GMAIL ESTABLECIDA ✅ ✅ ✅');
         console.log('📧 Listo para enviar emails REALES');
@@ -137,7 +144,7 @@ const sendEmail = async (mailOptions) => {
   console.log('\n📧 === INICIANDO ENVÍO DE EMAIL ===');
   console.log('   Para:', mailOptions.to);
   console.log('   Asunto:', mailOptions.subject);
-  
+ 
   if (!emailTransporter) {
     console.log('❌ No hay transporte de email disponible');
     console.log('📧 === ENVÍO CANCELADO ===\n');
@@ -146,29 +153,29 @@ const sendEmail = async (mailOptions) => {
 
   try {
     console.log('🚀 Enviando email REAL...');
-    
+   
     const result = await emailTransporter.sendMail({
       from: 'Sistema de Inventario <ingalexisarenas@gmail.com>',
       ...mailOptions
     });
-    
+   
     console.log('✅ ✅ ✅ EMAIL REAL ENVIADO EXITOSAMENTE ✅ ✅ ✅');
     console.log('   ID del mensaje:', result.messageId);
     console.log('   Respuesta:', result.response);
     console.log('📧 === EMAIL ENVIADO ===\n');
-    
-    return { 
-      success: true, 
+   
+    return {
+      success: true,
       messageId: result.messageId,
       response: result.response,
       real: true
     };
-    
+   
   } catch (error) {
     console.error('❌ ❌ ❌ ERROR ENVIANDO EMAIL REAL:');
     console.error('   Código:', error.code);
     console.error('   Mensaje:', error.message);
-    
+   
     if (error.code === 'EAUTH') {
       console.log('\n💡 PROBLEMA DE AUTENTICACIÓN:');
       console.log('   1. Verifica que usaste CONTRASEÑA DE APLICACIÓN (16 caracteres)');
@@ -176,12 +183,12 @@ const sendEmail = async (mailOptions) => {
       console.log('   3. Asegúrate de que la verificación en 2 pasos esté ACTIVADA');
       console.log('   4. Genera una NUEVA contraseña en: https://myaccount.google.com/apppasswords');
     }
-    
+   
     if (error.code === 'EENVELOPE') {
       console.log('\n💡 PROBLEMA CON EL DESTINATARIO:');
       console.log('   Verifica que el email del destinatario sea válido');
     }
-    
+   
     console.log('📧 === ERROR EN ENVÍO ===\n');
     throw error;
   }
@@ -195,9 +202,9 @@ const sendEmail = async (mailOptions) => {
 app.get('/api/superadmin/companies', authenticateToken, requireSuperAdmin, async (req, res) => {
     try {
         const connection = await mysql.createConnection(dbConfig);
-        
+       
         const [companies] = await connection.execute(`
-            SELECT 
+            SELECT
                 c.*,
                 u.username as admin_username,
                 u.full_name as admin_name,
@@ -211,7 +218,7 @@ app.get('/api/superadmin/companies', authenticateToken, requireSuperAdmin, async
         `);
 
         connection.end();
-        
+       
         res.json(companies);
     } catch (error) {
         console.error('Error getting companies:', error);
@@ -223,9 +230,9 @@ app.get('/api/superadmin/companies', authenticateToken, requireSuperAdmin, async
 app.get('/api/superadmin/stats', authenticateToken, requireSuperAdmin, async (req, res) => {
     try {
         const connection = await mysql.createConnection(dbConfig);
-        
+       
         const [stats] = await connection.execute(`
-            SELECT 
+            SELECT
                 COUNT(DISTINCT c.id) as total_companies,
                 COUNT(DISTINCT u.id) as total_users,
                 COUNT(DISTINCT i.id) as total_inventories,
@@ -243,19 +250,19 @@ app.get('/api/superadmin/stats', authenticateToken, requireSuperAdmin, async (re
         // Obtener actividad reciente
         const [recentActivity] = await connection.execute(`
             (SELECT 'user' as type, u.full_name, u.username, c.name as company_name, u.created_at as date
-             FROM users u 
-             LEFT JOIN companies c ON u.company_id = c.id 
+             FROM users u
+             LEFT JOIN companies c ON u.company_id = c.id
              ORDER BY u.created_at DESC LIMIT 5)
             UNION ALL
             (SELECT 'inventory' as type, i.name as full_name, '' as username, c.name as company_name, i.created_at as date
-             FROM inventories i 
-             LEFT JOIN companies c ON i.company_id = c.id 
+             FROM inventories i
+             LEFT JOIN companies c ON i.company_id = c.id
              ORDER BY i.created_at DESC LIMIT 5)
             ORDER BY date DESC LIMIT 10
         `);
 
         connection.end();
-        
+       
         res.json({
             overview: stats[0],
             recentActivity
@@ -271,7 +278,7 @@ app.post('/api/superadmin/companies', authenticateToken, requireSuperAdmin, asyn
     let connection;
     try {
         const { company_name, admin_username, admin_email, admin_full_name, admin_password, user_limit } = req.body;
-        
+       
         console.log('🏢 Creando nueva empresa:', { company_name, admin_username });
 
         if (!company_name || !admin_username || !admin_email || !admin_full_name || !admin_password) {
@@ -355,7 +362,7 @@ app.post('/api/superadmin/companies', authenticateToken, requireSuperAdmin, asyn
                             <div class="content">
                                 <p>Hola <strong>${admin_full_name}</strong>,</p>
                                 <p>Tu empresa <strong>${company_name}</strong> ha sido registrada exitosamente.</p>
-                                
+                               
                                 <div class="credentials-box">
                                     <h3>Detalles de tu cuenta:</h3>
                                     <p><strong>Usuario:</strong> ${admin_username}</p>
@@ -363,7 +370,7 @@ app.post('/api/superadmin/companies', authenticateToken, requireSuperAdmin, asyn
                                     <p><strong>Contraseña:</strong> ${admin_password}</p>
                                     <p><strong>Límite de usuarios:</strong> ${user_limit || 10}</p>
                                 </div>
-                                
+                               
                                 <p>Ya puedes comenzar a gestionar tus inventarios de manera eficiente.</p>
                                 <br>
                                 <p>Saludos cordiales,<br>Equipo de Sistema de Inventario</p>
@@ -384,10 +391,10 @@ app.post('/api/superadmin/companies', authenticateToken, requireSuperAdmin, asyn
             }
 
             connection.end();
-            
+           
             console.log('✅ Empresa creada exitosamente');
-            
-            res.json({ 
+           
+            res.json({
                 success: true,
                 message: 'Empresa y usuario administrador creados exitosamente',
                 company_id: companyId,
@@ -419,20 +426,20 @@ app.get('/api/superadmin/companies/:companyId/users', authenticateToken, require
     try {
         const companyId = req.params.companyId;
         const connection = await mysql.createConnection(dbConfig);
-        
+       
         const [users] = await connection.execute(`
-            SELECT 
-                u.id, u.username, u.email, u.full_name, u.role, u.is_active, 
+            SELECT
+                u.id, u.username, u.email, u.full_name, u.role, u.is_active,
                 u.created_at, u.updated_at,
                 (SELECT COUNT(*) FROM inventories i WHERE i.created_by = u.id) as created_inventories,
                 (SELECT COUNT(*) FROM inventory_products ip WHERE ip.counted_by = u.id) as counted_products
-            FROM users u 
+            FROM users u
             WHERE u.company_id = ?
             ORDER BY u.created_at DESC
         `, [companyId]);
 
         connection.end();
-        
+       
         res.json(users);
     } catch (error) {
         console.error('Error getting company users:', error);
@@ -445,17 +452,17 @@ app.get('/api/superadmin/companies/:companyId/inventories', authenticateToken, r
     try {
         const companyId = req.params.companyId;
         const connection = await mysql.createConnection(dbConfig);
-        
+       
         const [inventories] = await connection.execute(`
-            SELECT 
-                i.*, 
+            SELECT
+                i.*,
                 u.full_name as created_by_name,
                 COALESCE(SUM(ip.expected_stock), 0) as total_units,
                 COALESCE(SUM(ip.counted_stock), 0) as counted_units,
                 COUNT(ip.id) as total_products,
                 SUM(CASE WHEN ip.counted_stock IS NOT NULL AND ip.counted_stock > 0 THEN 1 ELSE 0 END) as counted_products
-            FROM inventories i 
-            LEFT JOIN users u ON i.created_by = u.id 
+            FROM inventories i
+            LEFT JOIN users u ON i.created_by = u.id
             LEFT JOIN inventory_products ip ON i.id = ip.inventory_id
             WHERE i.company_id = ?
             GROUP BY i.id
@@ -463,7 +470,7 @@ app.get('/api/superadmin/companies/:companyId/inventories', authenticateToken, r
         `, [companyId]);
 
         connection.end();
-        
+       
         res.json(inventories);
     } catch (error) {
         console.error('Error getting company inventories:', error);
@@ -475,21 +482,21 @@ app.get('/api/superadmin/companies/:companyId/inventories', authenticateToken, r
 app.get('/api/superadmin/audit-logs', authenticateToken, requireSuperAdmin, async (req, res) => {
     try {
         const connection = await mysql.createConnection(dbConfig);
-        
+       
         const [logs] = await connection.execute(`
-            (SELECT 
+            (SELECT
                 'login' as action_type,
                 u.username,
                 u.full_name,
                 c.name as company_name,
                 u.last_login as timestamp,
                 u.last_login_ip as ip_address
-             FROM users u 
-             LEFT JOIN companies c ON u.company_id = c.id 
+             FROM users u
+             LEFT JOIN companies c ON u.company_id = c.id
              WHERE u.last_login IS NOT NULL
              ORDER BY u.last_login DESC LIMIT 50)
             UNION ALL
-            (SELECT 
+            (SELECT
                 'count' as action_type,
                 u.username,
                 u.full_name,
@@ -505,7 +512,7 @@ app.get('/api/superadmin/audit-logs', authenticateToken, requireSuperAdmin, asyn
         `);
 
         connection.end();
-        
+       
         res.json(logs);
     } catch (error) {
         console.error('Error getting audit logs:', error);
@@ -521,9 +528,9 @@ app.get('/api/superadmin/audit-logs', authenticateToken, requireSuperAdmin, asyn
 app.get('/api/profile', authenticateToken, async (req, res) => {
     try {
         const connection = await mysql.createConnection(dbConfig);
-        
+       
         const [users] = await connection.execute(`
-            SELECT 
+            SELECT
                 u.id, u.username, u.email, u.full_name, u.role, u.company_id,
                 c.name as company_name, u.created_at, u.last_login, u.last_login_ip
             FROM users u
@@ -549,7 +556,7 @@ app.put('/api/profile', authenticateToken, async (req, res) => {
     let connection;
     try {
         const { full_name, email, current_password, new_password } = req.body;
-        
+       
         connection = await mysql.createConnection(dbConfig);
 
         // Verificar contraseña actual si se quiere cambiar la contraseña
@@ -591,8 +598,8 @@ app.put('/api/profile', authenticateToken, async (req, res) => {
 
         await connection.execute(updateQuery, queryParams);
         connection.end();
-        
-        res.json({ 
+       
+        res.json({
             success: true,
             message: 'Perfil actualizado exitosamente'
         });
@@ -612,7 +619,7 @@ app.post('/api/register', async (req, res) => {
     let connection;
     try {
         const { company_name, username, email, password, full_name } = req.body;
-        
+       
         console.log('📝 Intentando registro:', { company_name, username, email, full_name });
 
         if (!company_name || !username || !email || !password || !full_name) {
@@ -687,41 +694,41 @@ app.post('/api/register', async (req, res) => {
                     <head>
                         <meta charset="utf-8">
                         <style>
-                            body { 
-                                font-family: 'Arial', sans-serif; 
+                            body {
+                                font-family: 'Arial', sans-serif;
                                 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                                 margin: 0;
                                 padding: 40px 20px;
                                 min-height: 100vh;
                             }
-                            .container { 
-                                max-width: 600px; 
-                                background: white; 
+                            .container {
+                                max-width: 600px;
+                                background: white;
                                 padding: 0;
-                                border-radius: 15px; 
+                                border-radius: 15px;
                                 margin: 0 auto;
                                 box-shadow: 0 20px 40px rgba(0,0,0,0.1);
                                 overflow: hidden;
                             }
-                            .header { 
+                            .header {
                                 background: linear-gradient(135deg, #8557FB 0%, #6A32F2 100%);
-                                color: white; 
-                                padding: 40px; 
-                                text-align: center; 
+                                color: white;
+                                padding: 40px;
+                                text-align: center;
                             }
                             .header h1 {
                                 margin: 0;
                                 font-size: 32px;
                                 font-weight: 700;
                             }
-                            .content { 
-                                padding: 40px 30px; 
+                            .content {
+                                padding: 40px 30px;
                                 color: #333;
                             }
-                            .credentials-box { 
+                            .credentials-box {
                                 background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-                                padding: 25px; 
-                                border-radius: 10px; 
+                                padding: 25px;
+                                border-radius: 10px;
                                 margin: 25px 0;
                                 border-left: 4px solid #28a745;
                             }
@@ -762,7 +769,7 @@ app.post('/api/register', async (req, res) => {
                             <div class="content">
                                 <p>Hola <strong>${full_name}</strong>,</p>
                                 <p>¡Excelentes noticias! Tu empresa <strong>${company_name}</strong> ha sido registrada exitosamente en nuestro sistema.</p>
-                                
+                               
                                 <div class="credentials-box">
                                     <h3 style="margin-top: 0; color: #28a745;">✅ Tus Credenciales de Acceso</h3>
                                     <p><strong>🏢 Empresa:</strong> ${company_name}</p>
@@ -788,7 +795,7 @@ app.post('/api/register', async (req, res) => {
                                         <strong>📱 Escanea códigos</strong> - Conteo rápido con código de barras
                                     </div>
                                 </div>
-                                
+                               
                                 <div style="text-align: center;">
                                     <a href="#" class="button">Comenzar a Usar el Sistema</a>
                                 </div>
@@ -834,12 +841,12 @@ app.post('/api/register', async (req, res) => {
                 company_name: company_name,
                 user_limit: 10
             };
-            
+           
             console.log('✅ Registro completado exitosamente');
-            
-            res.json({ 
+           
+            res.json({
                 success: true,
-                token, 
+                token,
                 user: userData,
                 message: 'Empresa y usuario administrador creados exitosamente'
             });
@@ -870,7 +877,7 @@ app.post('/api/login', async (req, res) => {
     let connection;
     try {
         const { username, password } = req.body;
-        
+       
         console.log('🔐 Login attempt for:', username);
 
         if (!username || !password) {
@@ -880,9 +887,9 @@ app.post('/api/login', async (req, res) => {
         connection = await mysql.createConnection(dbConfig);
 
         const [users] = await connection.execute(
-            `SELECT u.*, c.name as company_name, c.user_limit 
-             FROM users u 
-             LEFT JOIN companies c ON u.company_id = c.id 
+            `SELECT u.*, c.name as company_name, c.user_limit
+             FROM users u
+             LEFT JOIN companies c ON u.company_id = c.id
              WHERE u.username = ? AND u.is_active = TRUE`,
             [username]
         );
@@ -895,7 +902,7 @@ app.post('/api/login', async (req, res) => {
 
         const user = users[0];
         const isValidPassword = await bcrypt.compare(password, user.password);
-        
+       
         if (!isValidPassword) {
             connection.end();
             console.log('❌ Contraseña incorrecta para:', username);
@@ -918,13 +925,13 @@ app.post('/api/login', async (req, res) => {
             company_name: user.company_name,
             user_limit: user.user_limit
         };
-        
+       
         console.log('🎉 Login successful for:', username);
-        
-        res.json({ 
+       
+        res.json({
             success: true,
-            token, 
-            user: userData 
+            token,
+            user: userData
         });
     } catch (error) {
         console.error('❌ Login error:', error);
@@ -938,10 +945,10 @@ app.post('/api/login', async (req, res) => {
 app.get('/api/company', authenticateToken, async (req, res) => {
     try {
         const connection = await mysql.createConnection(dbConfig);
-        
+       
         const [companies] = await connection.execute(
-            `SELECT c.*, COUNT(u.id) as current_users 
-             FROM companies c 
+            `SELECT c.*, COUNT(u.id) as current_users
+             FROM companies c
              LEFT JOIN users u ON c.id = u.company_id AND u.is_active = TRUE
              WHERE c.id = ?
              GROUP BY c.id`,
@@ -965,25 +972,25 @@ app.get('/api/company', authenticateToken, async (req, res) => {
 app.get('/api/inventories', authenticateToken, async (req, res) => {
     try {
         const connection = await mysql.createConnection(dbConfig);
-        
+       
         let query, params;
 
         if (req.user.role === 'admin') {
             query = `
-                SELECT 
-                    i.*, 
+                SELECT
+                    i.*,
                     u.full_name as created_by_name,
                     COALESCE(SUM(ip.expected_stock), 0) as total_units,
                     COALESCE(SUM(ip.counted_stock), 0) as counted_units,
                     COUNT(ip.id) as total_products,
                     SUM(CASE WHEN ip.counted_stock IS NOT NULL AND ip.counted_stock > 0 THEN 1 ELSE 0 END) as counted_products,
-                    CASE 
-                        WHEN COALESCE(SUM(ip.expected_stock), 0) > 0 THEN 
-                            (COALESCE(SUM(ip.counted_stock), 0) / COALESCE(SUM(ip.expected_stock), 0)) * 100 
-                        ELSE 0 
+                    CASE
+                        WHEN COALESCE(SUM(ip.expected_stock), 0) > 0 THEN
+                            (COALESCE(SUM(ip.counted_stock), 0) / COALESCE(SUM(ip.expected_stock), 0)) * 100
+                        ELSE 0
                     END as progress_percentage
-                FROM inventories i 
-                LEFT JOIN users u ON i.created_by = u.id 
+                FROM inventories i
+                LEFT JOIN users u ON i.created_by = u.id
                 LEFT JOIN inventory_products ip ON i.id = ip.inventory_id
                 WHERE i.company_id = ?
                 GROUP BY i.id, i.name, i.description, i.created_by, i.created_at, i.updated_at, u.full_name
@@ -992,24 +999,24 @@ app.get('/api/inventories', authenticateToken, async (req, res) => {
             params = [req.user.company_id];
         } else {
             query = `
-                SELECT 
-                    i.*, 
+                SELECT
+                    i.*,
                     u.full_name as created_by_name,
                     COALESCE(SUM(ip.expected_stock), 0) as total_units,
                     COALESCE(SUM(ip.counted_stock), 0) as counted_units,
                     COUNT(ip.id) as total_products,
                     SUM(CASE WHEN ip.counted_stock IS NOT NULL AND ip.counted_stock > 0 THEN 1 ELSE 0 END) as counted_products,
-                    CASE 
-                        WHEN COALESCE(SUM(ip.expected_stock), 0) > 0 THEN 
-                            (COALESCE(SUM(ip.counted_stock), 0) / COALESCE(SUM(ip.expected_stock), 0)) * 100 
-                        ELSE 0 
+                    CASE
+                        WHEN COALESCE(SUM(ip.expected_stock), 0) > 0 THEN
+                            (COALESCE(SUM(ip.counted_stock), 0) / COALESCE(SUM(ip.expected_stock), 0)) * 100
+                        ELSE 0
                     END as progress_percentage,
                     ui.can_edit,
                     ui.can_delete,
                     ui.can_upload
                 FROM user_inventories ui
                 INNER JOIN inventories i ON ui.inventory_id = i.id
-                LEFT JOIN users u ON i.created_by = u.id 
+                LEFT JOIN users u ON i.created_by = u.id
                 LEFT JOIN inventory_products ip ON i.id = ip.inventory_id
                 WHERE ui.user_id = ? AND i.company_id = ?
                 GROUP BY i.id, i.name, i.description, i.created_by, i.created_at, i.updated_at, u.full_name, ui.can_edit, ui.can_delete, ui.can_upload
@@ -1017,10 +1024,10 @@ app.get('/api/inventories', authenticateToken, async (req, res) => {
             `;
             params = [req.user.id, req.user.company_id];
         }
-        
+       
         const [inventories] = await connection.execute(query, params);
         connection.end();
-        
+       
         console.log(`Found ${inventories.length} inventories for user: ${req.user.id}`);
         res.json(inventories);
     } catch (error) {
@@ -1034,14 +1041,14 @@ app.get('/api/inventories/:id', authenticateToken, async (req, res) => {
     try {
         const inventoryId = req.params.id;
         const connection = await mysql.createConnection(dbConfig);
-        
+       
         let query, params;
 
         if (req.user.role === 'admin') {
             query = `
-                SELECT i.*, u.full_name as created_by_name 
-                FROM inventories i 
-                LEFT JOIN users u ON i.created_by = u.id 
+                SELECT i.*, u.full_name as created_by_name
+                FROM inventories i
+                LEFT JOIN users u ON i.created_by = u.id
                 WHERE i.id = ? AND i.company_id = ?
             `;
             params = [inventoryId, req.user.company_id];
@@ -1088,13 +1095,13 @@ app.post('/api/inventories', authenticateToken, async (req, res) => {
         );
 
         connection.end();
-        
+       
         console.log(`Inventory created with ID: ${result.insertId}`);
-        
-        res.json({ 
+       
+        res.json({
             success: true,
-            id: result.insertId, 
-            message: 'Inventario creado exitosamente' 
+            id: result.insertId,
+            message: 'Inventario creado exitosamente'
         });
     } catch (error) {
         console.error('Error creating inventory:', error);
@@ -1113,7 +1120,7 @@ app.put('/api/inventories/:id', authenticateToken, async (req, res) => {
         }
 
         const connection = await mysql.createConnection(dbConfig);
-        
+       
         let query, params;
 
         if (req.user.role === 'admin') {
@@ -1141,12 +1148,12 @@ app.put('/api/inventories/:id', authenticateToken, async (req, res) => {
         );
 
         connection.end();
-        
+       
         console.log(`Inventory updated: ${inventoryId}`);
-        
-        res.json({ 
+       
+        res.json({
             success: true,
-            message: 'Inventario actualizado exitosamente' 
+            message: 'Inventario actualizado exitosamente'
         });
     } catch (error) {
         console.error('Error updating inventory:', error);
@@ -1159,7 +1166,7 @@ app.delete('/api/inventories/:id', authenticateToken, async (req, res) => {
     try {
         const inventoryId = req.params.id;
         const connection = await mysql.createConnection(dbConfig);
-        
+       
         let query, params;
 
         if (req.user.role === 'admin') {
@@ -1186,12 +1193,12 @@ app.delete('/api/inventories/:id', authenticateToken, async (req, res) => {
         await connection.execute('DELETE FROM inventories WHERE id = ?', [inventoryId]);
 
         connection.end();
-        
+       
         console.log(`Inventory deleted successfully: ${inventoryId}`);
-        
-        res.json({ 
+       
+        res.json({
             success: true,
-            message: 'Inventario eliminado exitosamente' 
+            message: 'Inventario eliminado exitosamente'
         });
     } catch (error) {
         console.error('Error deleting inventory:', error);
@@ -1246,8 +1253,8 @@ app.post('/api/inventories/:id/upload', authenticateToken, upload.single('file')
         const columnNames = Object.keys(data[0]);
         console.log('Excel columns:', columnNames);
 
-        const barcodeKey = columnNames.find(key => 
-            key.toLowerCase().includes('barcode') || 
+        const barcodeKey = columnNames.find(key =>
+            key.toLowerCase().includes('barcode') ||
             key.toLowerCase().includes('codigo') ||
             key.toLowerCase().includes('código') ||
             key.toLowerCase().includes('ean') ||
@@ -1257,8 +1264,8 @@ app.post('/api/inventories/:id/upload', authenticateToken, upload.single('file')
 
         if (!barcodeKey) {
             connection.end();
-            return res.status(400).json({ 
-                error: 'El archivo debe contener una columna de código de barras' 
+            return res.status(400).json({
+                error: 'El archivo debe contener una columna de código de barras'
             });
         }
 
@@ -1271,7 +1278,7 @@ app.post('/api/inventories/:id/upload', authenticateToken, upload.single('file')
         for (const [index, row] of data.entries()) {
             try {
                 const barcode = row[barcodeKey] ? String(row[barcodeKey]).trim() : null;
-                
+               
                 if (!barcode) {
                     errors++;
                     errorsList.push(`Fila ${index + 2}: Sin código de barras`);
@@ -1279,19 +1286,19 @@ app.post('/api/inventories/:id/upload', authenticateToken, upload.single('file')
                 }
 
                 const skuKey = columnNames.find(key => key.toLowerCase().includes('sku'));
-                const nameKey = columnNames.find(key => 
-                    key.toLowerCase().includes('name') || 
+                const nameKey = columnNames.find(key =>
+                    key.toLowerCase().includes('name') ||
                     key.toLowerCase().includes('nombre') ||
                     key.toLowerCase().includes('producto')
                 );
-                const stockKey = columnNames.find(key => 
-                    key.toLowerCase().includes('stock') || 
+                const stockKey = columnNames.find(key =>
+                    key.toLowerCase().includes('stock') ||
                     key.toLowerCase().includes('cantidad')
                 );
 
                 await connection.execute(
-                    `INSERT INTO inventory_products 
-                    (inventory_id, barcode, sku, product_name, expected_stock) 
+                    `INSERT INTO inventory_products
+                    (inventory_id, barcode, sku, product_name, expected_stock)
                     VALUES (?, ?, ?, ?, ?)
                     ON DUPLICATE KEY UPDATE
                     sku = VALUES(sku), product_name = VALUES(product_name), expected_stock = VALUES(expected_stock)`,
@@ -1316,10 +1323,10 @@ app.post('/api/inventories/:id/upload', authenticateToken, upload.single('file')
         );
 
         connection.end();
-        
+       
         console.log(`File processed: ${processed} success, ${errors} errors`);
-        
-        const response = { 
+       
+        const response = {
             success: true,
             message: `Se procesaron ${processed} productos exitosamente`,
             processed,
@@ -1350,7 +1357,7 @@ app.get('/api/inventories/:id/products/search', authenticateToken, async (req, r
         }
 
         const connection = await mysql.createConnection(dbConfig);
-        
+       
         let query, params;
 
         if (req.user.role === 'admin') {
@@ -1374,10 +1381,10 @@ app.get('/api/inventories/:id/products/search', authenticateToken, async (req, r
 
         const searchTerm = `%${barcode.trim()}%`;
         const [products] = await connection.execute(
-            `SELECT * FROM inventory_products 
-             WHERE inventory_id = ? AND barcode LIKE ? 
-             ORDER BY 
-                 CASE 
+            `SELECT * FROM inventory_products
+             WHERE inventory_id = ? AND barcode LIKE ?
+             ORDER BY
+                 CASE
                      WHEN barcode = ? THEN 1
                      WHEN barcode LIKE ? THEN 2
                      ELSE 3
@@ -1400,7 +1407,7 @@ app.get('/api/inventories/:id/products', authenticateToken, async (req, res) => 
     try {
         const inventoryId = req.params.id;
         const connection = await mysql.createConnection(dbConfig);
-        
+       
         let query, params;
 
         if (req.user.role === 'admin') {
@@ -1423,23 +1430,23 @@ app.get('/api/inventories/:id/products', authenticateToken, async (req, res) => 
         }
 
         const [products] = await connection.execute(`
-            SELECT 
+            SELECT
                 ip.*,
                 u.full_name as counted_by_name,
-                CASE 
+                CASE
                     WHEN ip.counted_stock IS NULL OR ip.counted_stock = 0 THEN 'not-counted'
                     WHEN ip.counted_stock > ip.expected_stock THEN 'excess'
                     WHEN ip.counted_stock < ip.expected_stock THEN 'shortage'
                     ELSE 'exact'
                 END as status,
                 (ip.counted_stock - ip.expected_stock) as difference,
-                CASE 
-                    WHEN ip.expected_stock > 0 THEN 
+                CASE
+                    WHEN ip.expected_stock > 0 THEN
                         ROUND(((ip.counted_stock - ip.expected_stock) / ip.expected_stock) * 100, 2)
                     ELSE 0
                 END as difference_percentage,
-                CASE 
-                    WHEN ip.expected_stock > 0 THEN 
+                CASE
+                    WHEN ip.expected_stock > 0 THEN
                         ROUND((ip.counted_stock / ip.expected_stock) * 100, 2)
                     ELSE 0
                 END as progress_percentage
@@ -1514,9 +1521,9 @@ app.post('/api/inventories/:id/count', authenticateToken, async (req, res) => {
         } else {
             productId = products[0].id;
             newCountedStock = (products[0].counted_stock || 0) + quantity;
-            
+           
             await connection.execute(
-                `UPDATE inventory_products 
+                `UPDATE inventory_products
                  SET counted_stock = ?, count_date = NOW(), counted_by = ?
                  WHERE inventory_id = ? AND barcode = ?`,
                 [newCountedStock, req.user.id, inventoryId, barcode.trim()]
@@ -1525,23 +1532,23 @@ app.post('/api/inventories/:id/count', authenticateToken, async (req, res) => {
 
         // Obtener el producto actualizado
         const [updatedProducts] = await connection.execute(
-            `SELECT 
+            `SELECT
                 ip.*,
                 u.full_name as counted_by_name,
-                CASE 
+                CASE
                     WHEN ip.counted_stock IS NULL OR ip.counted_stock = 0 THEN 'not-counted'
                     WHEN ip.counted_stock > ip.expected_stock THEN 'excess'
                     WHEN ip.counted_stock < ip.expected_stock THEN 'shortage'
                     ELSE 'exact'
                 END as status,
                 (ip.counted_stock - ip.expected_stock) as difference,
-                CASE 
-                    WHEN ip.expected_stock > 0 THEN 
+                CASE
+                    WHEN ip.expected_stock > 0 THEN
                         ROUND(((ip.counted_stock - ip.expected_stock) / ip.expected_stock) * 100, 2)
                     ELSE 0
                 END as difference_percentage,
-                CASE 
-                    WHEN ip.expected_stock > 0 THEN 
+                CASE
+                    WHEN ip.expected_stock > 0 THEN
                         ROUND((ip.counted_stock / ip.expected_stock) * 100, 2)
                     ELSE 0
                 END as progress_percentage
@@ -1555,34 +1562,34 @@ app.post('/api/inventories/:id/count', authenticateToken, async (req, res) => {
 
         // Obtener estadísticas del inventario
         const [stats] = await connection.execute(`
-            SELECT 
+            SELECT
                 COUNT(*) as total_products,
                 SUM(CASE WHEN counted_stock IS NOT NULL AND counted_stock > 0 THEN 1 ELSE 0 END) as counted_products,
                 COALESCE(SUM(expected_stock), 0) as total_units,
                 COALESCE(SUM(counted_stock), 0) as counted_units,
-                CASE 
-                    WHEN COUNT(*) > 0 THEN 
-                        (SUM(CASE WHEN counted_stock IS NOT NULL AND counted_stock > 0 THEN 1 ELSE 0 END) / COUNT(*)) * 100 
-                    ELSE 0 
+                CASE
+                    WHEN COUNT(*) > 0 THEN
+                        (SUM(CASE WHEN counted_stock IS NOT NULL AND counted_stock > 0 THEN 1 ELSE 0 END) / COUNT(*)) * 100
+                    ELSE 0
                 END as progress_percentage
-            FROM inventory_products 
+            FROM inventory_products
             WHERE inventory_id = ?
         `, [inventoryId]);
 
         // Actualizar inventario
         await connection.execute(
-            `UPDATE inventories 
-             SET total_products = ?, counted_products = ?, progress_percentage = ?, 
+            `UPDATE inventories
+             SET total_products = ?, counted_products = ?, progress_percentage = ?,
                  last_count_date = NOW(), last_count_by = ?, updated_at = CURRENT_TIMESTAMP
              WHERE id = ?`,
             [stats[0].total_products, stats[0].counted_products, stats[0].progress_percentage, req.user.id, inventoryId]
         );
 
         connection.end();
-        
+       
         console.log(`Count registered successfully - added ${quantity} to product ${barcode}`);
-        
-        res.json({ 
+       
+        res.json({
             success: true,
             message: 'Conteo registrado exitosamente',
             product: updatedProduct,
@@ -1606,7 +1613,7 @@ app.get('/api/inventories/:id/export', authenticateToken, async (req, res) => {
         const inventoryId = req.params.id;
         const format = req.query.format || 'excel';
         const type = req.query.type || 'all';
-        
+       
         connection = await mysql.createConnection(dbConfig);
 
         let query, params;
@@ -1634,23 +1641,23 @@ app.get('/api/inventories/:id/export', authenticateToken, async (req, res) => {
 
         // Construir query según el tipo
         let productsQuery = `
-            SELECT 
+            SELECT
                 barcode,
                 sku,
                 product_name,
                 expected_stock,
                 counted_stock,
                 count_date,
-                CASE 
+                CASE
                     WHEN counted_stock IS NOT NULL AND counted_stock > 0 THEN 'CONTADO'
                     ELSE 'PENDIENTE'
                 END as status,
-                CASE 
-                    WHEN expected_stock IS NOT NULL AND counted_stock IS NOT NULL 
+                CASE
+                    WHEN expected_stock IS NOT NULL AND counted_stock IS NOT NULL
                     THEN counted_stock - expected_stock
                     ELSE NULL
                 END as diferencia
-            FROM inventory_products 
+            FROM inventory_products
             WHERE inventory_id = ?
         `;
 
@@ -1718,7 +1725,7 @@ app.get('/api/inventories/:id/export', authenticateToken, async (req, res) => {
 
         } else {
             const workbook = XLSX.utils.book_new();
-            
+           
             const worksheetData = [
                 ['Código Barras', 'SKU', 'Producto', 'Stock Esperado', 'Stock Contado', 'Diferencia', 'Estado', 'Fecha Conteo'],
                 ...products.map(product => [
@@ -1734,7 +1741,7 @@ app.get('/api/inventories/:id/export', authenticateToken, async (req, res) => {
             ];
 
             const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-            
+           
             if (worksheet['!ref']) {
                 const range = XLSX.utils.decode_range(worksheet['!ref']);
                 for (let col = range.s.c; col <= range.e.c; col++) {
@@ -1765,7 +1772,7 @@ app.get('/api/inventories/:id/export', authenticateToken, async (req, res) => {
             const filename = `inventario_${typeNames[type]}_${inventory.name}_${timestamp}.xlsx`;
 
             const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
-            
+           
             res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
             res.send(excelBuffer);
@@ -1788,13 +1795,13 @@ app.get('/api/users', authenticateToken, async (req, res) => {
         const connection = await mysql.createConnection(dbConfig);
         const [users] = await connection.execute(`
             SELECT id, username, email, full_name, role, is_active, created_at, updated_at
-            FROM users 
+            FROM users
             WHERE company_id = ?
             ORDER BY created_at DESC
         `, [req.user.company_id]);
-        
+       
         connection.end();
-        
+       
         res.json(users);
     } catch (error) {
         console.error('Error getting users:', error);
@@ -1810,7 +1817,7 @@ app.post('/api/users', authenticateToken, async (req, res) => {
         }
 
         const { username, email, password, full_name, role } = req.body;
-        
+       
         if (!username || !email || !password || !full_name) {
             return res.status(400).json({ error: 'Todos los campos son requeridos' });
         }
@@ -1830,8 +1837,8 @@ app.post('/api/users', authenticateToken, async (req, res) => {
 
         if (userCount[0].count >= company[0].user_limit) {
             connection.end();
-            return res.status(400).json({ 
-                error: `Límite de usuarios alcanzado. Máximo permitido: ${company[0].user_limit}` 
+            return res.status(400).json({
+                error: `Límite de usuarios alcanzado. Máximo permitido: ${company[0].user_limit}`
             });
         }
 
@@ -1861,41 +1868,41 @@ app.post('/api/users', authenticateToken, async (req, res) => {
                 <head>
                     <meta charset="utf-8">
                     <style>
-                        body { 
-                            font-family: 'Arial', sans-serif; 
+                        body {
+                            font-family: 'Arial', sans-serif;
                             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                             margin: 0;
                             padding: 40px 20px;
                             min-height: 100vh;
                         }
-                        .container { 
-                            max-width: 600px; 
-                            background: white; 
+                        .container {
+                            max-width: 600px;
+                            background: white;
                             padding: 0;
-                            border-radius: 15px; 
+                            border-radius: 15px;
                             margin: 0 auto;
                             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
                             overflow: hidden;
                         }
-                        .header { 
+                        .header {
                             background: linear-gradient(135deg, #8557FB 0%, #6A32F2 100%);
-                            color: white; 
-                            padding: 30px; 
-                            text-align: center; 
+                            color: white;
+                            padding: 30px;
+                            text-align: center;
                         }
                         .header h1 {
                             margin: 0;
                             font-size: 28px;
                             font-weight: 700;
                         }
-                        .content { 
-                            padding: 40px 30px; 
+                        .content {
+                            padding: 40px 30px;
                             color: #333;
                         }
-                        .credentials-box { 
+                        .credentials-box {
                             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-                            padding: 25px; 
-                            border-radius: 10px; 
+                            padding: 25px;
+                            border-radius: 10px;
                             margin: 25px 0;
                             border-left: 4px solid #28a745;
                         }
@@ -1935,7 +1942,7 @@ app.post('/api/users', authenticateToken, async (req, res) => {
                         <div class="content">
                             <p>Hola <strong>${full_name}</strong>,</p>
                             <p>Se ha creado una cuenta para ti en nuestro Sistema de Conteo de Inventario.</p>
-                            
+                           
                             <div class="credentials-box">
                                 <h3 style="margin-top: 0; color: #28a745;">🔐 Tus Credenciales de Acceso</h3>
                                 <p><strong>🏢 Empresa:</strong> ${req.user.company_name}</p>
@@ -1962,7 +1969,7 @@ app.post('/api/users', authenticateToken, async (req, res) => {
                                 </div>
                                 ` : ''}
                             </div>
-                            
+                           
                             <div style="text-align: center;">
                                 <a href="#" class="button">Iniciar Sesión en el Sistema</a>
                             </div>
@@ -1992,13 +1999,13 @@ app.post('/api/users', authenticateToken, async (req, res) => {
         }
 
         connection.end();
-        
+       
         console.log(`Usuario creado - Credenciales enviadas:`, { username, password });
-        
-        res.json({ 
+       
+        res.json({
             success: true,
             message: 'Usuario creado exitosamente',
-            id: result.insertId 
+            id: result.insertId
         });
     } catch (error) {
         if (connection) connection.end();
@@ -2055,8 +2062,8 @@ app.put('/api/users/:id', authenticateToken, async (req, res) => {
 
         await connection.execute(updateQuery, queryParams);
         connection.end();
-        
-        res.json({ 
+       
+        res.json({
             success: true,
             message: 'Usuario actualizado exitosamente'
         });
@@ -2089,19 +2096,19 @@ app.get('/api/users/:id/available-inventories', authenticateToken, async (req, r
         }
 
         const [inventories] = await connection.execute(`
-            SELECT i.* 
+            SELECT i.*
             FROM inventories i
-            WHERE i.company_id = ? 
+            WHERE i.company_id = ?
             AND i.id NOT IN (
-                SELECT inventory_id 
-                FROM user_inventories 
+                SELECT inventory_id
+                FROM user_inventories
                 WHERE user_id = ?
             )
             ORDER BY i.name
         `, [req.user.company_id, userId]);
 
         connection.end();
-        
+       
         res.json(inventories);
     } catch (error) {
         console.error('Error getting available inventories:', error);
@@ -2137,7 +2144,7 @@ app.get('/api/users/:id/assigned-inventories', authenticateToken, async (req, re
         `, [userId]);
 
         connection.end();
-        
+       
         res.json(inventories);
     } catch (error) {
         console.error('Error getting assigned inventories:', error);
@@ -2171,18 +2178,18 @@ app.post('/api/users/:userId/assign-inventory/:inventoryId', authenticateToken, 
         }
 
         await connection.execute(
-            `INSERT INTO user_inventories (user_id, inventory_id, can_edit, can_delete, can_upload) 
+            `INSERT INTO user_inventories (user_id, inventory_id, can_edit, can_delete, can_upload)
              VALUES (?, ?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE 
-             can_edit = VALUES(can_edit), 
-             can_delete = VALUES(can_delete), 
+             ON DUPLICATE KEY UPDATE
+             can_edit = VALUES(can_edit),
+             can_delete = VALUES(can_delete),
              can_upload = VALUES(can_upload)`,
             [userId, inventoryId, can_edit || false, can_delete || false, can_upload || false]
         );
 
         connection.end();
-        
-        res.json({ 
+       
+        res.json({
             success: true,
             message: 'Inventario asignado exitosamente'
         });
@@ -2210,8 +2217,8 @@ app.delete('/api/users/:userId/assign-inventory/:inventoryId', authenticateToken
         );
 
         connection.end();
-        
-        res.json({ 
+       
+        res.json({
             success: true,
             message: 'Asignación removida exitosamente'
         });
@@ -2227,26 +2234,26 @@ app.post('/api/email/send', authenticateToken, async (req, res) => {
   try {
     const { to, subject, html } = req.body;
     console.log('📧 Solicitando envío a:', to);
-    
+   
     const result = await sendEmail({ to, subject, html });
-    
+   
     if (result.success) {
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: 'Correo enviado exitosamente',
         messageId: result.messageId
       });
     } else {
-      res.status(500).json({ 
-        success: false, 
-        error: result.error || 'Error enviando correo' 
+      res.status(500).json({
+        success: false,
+        error: result.error || 'Error enviando correo'
       });
     }
   } catch (error) {
     console.error('❌ Error en API de email:', error.message);
-    res.status(500).json({ 
-      success: false, 
-      error: 'Error enviando correo: ' + error.message 
+    res.status(500).json({
+      success: false,
+      error: 'Error enviando correo: ' + error.message
     });
   }
 });
@@ -2286,10 +2293,10 @@ app.delete('/api/users/:id', authenticateToken, async (req, res) => {
     );
 
     connection.end();
-    
+   
     console.log(`Usuario desactivado: ${userId}`);
-    
-    res.json({ 
+   
+    res.json({
       success: true,
       message: 'Usuario desactivado exitosamente'
     });
@@ -2312,12 +2319,12 @@ app.post('/api/forgot-password', async (req, res) => {
     }
 
     connection = await mysql.createConnection(dbConfig);
-    
+   
     // Buscar usuario
     const [users] = await connection.execute(
-      `SELECT u.*, c.name as company_name 
-       FROM users u 
-       LEFT JOIN companies c ON u.company_id = c.id 
+      `SELECT u.*, c.name as company_name
+       FROM users u
+       LEFT JOIN companies c ON u.company_id = c.id
        WHERE u.email = ? AND u.is_active = TRUE`,
       [email]
     );
@@ -2326,27 +2333,27 @@ app.post('/api/forgot-password', async (req, res) => {
     if (users.length === 0) {
       connection.end();
       console.log('📧 Email no encontrado, pero respondiendo con éxito por seguridad');
-      return res.json({ 
-        success: true, 
-        message: 'Si el email existe en nuestro sistema, se enviaron las instrucciones' 
+      return res.json({
+        success: true,
+        message: 'Si el email existe en nuestro sistema, se enviaron las instrucciones'
       });
     }
 
     const user = users[0];
-    
+   
     // ✅ GENERAR CONTRASEÑA TEMPORAL NUEVA
     const temporaryPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8);
     console.log('🔐 Contraseña temporal generada:', temporaryPassword);
-    
+   
     // ✅ HASHEAR LA NUEVA CONTRASEÑA
     const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
-    
+   
     // ✅ ACTUALIZAR LA CONTRASEÑA EN LA BASE DE DATOS
     await connection.execute(
       'UPDATE users SET password = ? WHERE id = ?',
       [hashedPassword, user.id]
     );
-    
+   
     console.log('✅ Contraseña temporal actualizada en la base de datos');
 
     // HTML del correo de recuperación - VERSIÓN QUE SÍ ENVÍA LA CONTRASEÑA
@@ -2356,35 +2363,35 @@ app.post('/api/forgot-password', async (req, res) => {
       <head>
         <meta charset="utf-8">
         <style>
-          body { 
-            font-family: 'Arial', sans-serif; 
+          body {
+            font-family: 'Arial', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             margin: 0;
             padding: 40px 20px;
             min-height: 100vh;
           }
-          .container { 
-            max-width: 600px; 
-            background: white; 
+          .container {
+            max-width: 600px;
+            background: white;
             padding: 0;
-            border-radius: 15px; 
+            border-radius: 15px;
             margin: 0 auto;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             overflow: hidden;
           }
-          .header { 
+          .header {
             background: linear-gradient(135deg, #8557FB 0%, #6A32F2 100%);
-            color: white; 
-            padding: 30px; 
-            text-align: center; 
+            color: white;
+            padding: 30px;
+            text-align: center;
           }
           .header h1 {
             margin: 0;
             font-size: 28px;
             font-weight: 700;
           }
-          .content { 
-            padding: 40px 30px; 
+          .content {
+            padding: 40px 30px;
             color: #333;
           }
           .user-info {
@@ -2405,11 +2412,11 @@ app.post('/api/forgot-password', async (req, res) => {
             font-weight: bold;
             color: #155724;
           }
-          .warning { 
-            background: #fff3cd; 
-            border: 1px solid #ffeaa7; 
-            padding: 20px; 
-            border-radius: 10px; 
+          .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 20px;
+            border-radius: 10px;
             margin: 25px 0;
             color: #856404;
           }
@@ -2431,14 +2438,14 @@ app.post('/api/forgot-password', async (req, res) => {
           <div class="content">
             <p>Hola <strong>${user.full_name}</strong>,</p>
             <p>Has solicitado recuperar el acceso a tu cuenta en nuestro Sistema de Inventario.</p>
-            
+           
             <div class="user-info">
               <h3 style="margin-top: 0; color: #8557FB;">Información de tu cuenta:</h3>
               <p><strong>👤 Usuario:</strong> ${user.username}</p>
               <p><strong>🏢 Empresa:</strong> ${user.company_name}</p>
               <p><strong>📧 Email:</strong> ${user.email}</p>
             </div>
-            
+           
             <div class="password-box">
               <h3 style="margin-top: 0; color: #155724;">Tu Nueva Contraseña Temporal</h3>
               <div style="font-size: 24px; letter-spacing: 2px; margin: 15px 0; background: white; padding: 15px; border-radius: 8px; border: 2px solid #28a745;">
@@ -2448,13 +2455,13 @@ app.post('/api/forgot-password', async (req, res) => {
                 Usa esta contraseña para iniciar sesión
               </p>
             </div>
-            
+           
             <div class="warning">
               <h4 style="margin-top: 0;">⚠️ Importante de Seguridad</h4>
               <p>Por seguridad, te recomendamos <strong>cambiar esta contraseña temporal</strong> después de iniciar sesión.</p>
               <p>Esta contraseña es válida por 24 horas.</p>
             </div>
-            
+           
             <p>Si no solicitaste este correo, por favor contacta al administrador de inmediato.</p>
           </div>
           <div class="footer">
@@ -2475,22 +2482,22 @@ app.post('/api/forgot-password', async (req, res) => {
     });
 
     connection.end();
-    
+   
     console.log('✅ Proceso de recuperación completado para:', email);
     console.log('🔐 Contraseña temporal enviada:', temporaryPassword);
-    
-    res.json({ 
-      success: true, 
-      message: 'Se ha enviado un correo con una contraseña temporal' 
+   
+    res.json({
+      success: true,
+      message: 'Se ha enviado un correo con una contraseña temporal'
     });
-    
+   
   } catch (error) {
     if (connection) connection.end();
     console.error('❌ Error en recuperación:', error);
     // Por seguridad, siempre responder éxito
-    res.json({ 
-      success: true, 
-      message: 'Si el email existe en nuestro sistema, se han enviado las instrucciones' 
+    res.json({
+      success: true,
+      message: 'Si el email existe en nuestro sistema, se han enviado las instrucciones'
     });
   }
 });
@@ -2501,16 +2508,16 @@ app.get('/api/health', async (req, res) => {
         const connection = await mysql.createConnection(dbConfig);
         await connection.execute('SELECT 1');
         connection.end();
-        
-        res.json({ 
-            status: 'OK', 
+       
+        res.json({
+            status: 'OK',
             message: 'Servidor y base de datos funcionando correctamente',
             timestamp: new Date().toISOString()
         });
     } catch (error) {
-        res.status(500).json({ 
-            status: 'ERROR', 
-            message: 'Error en la base de datos: ' + error.message 
+        res.status(500).json({
+            status: 'ERROR',
+            message: 'Error en la base de datos: ' + error.message
         });
     }
 });

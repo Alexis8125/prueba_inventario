@@ -99,6 +99,9 @@ const requireSuperAdmin = (req, res, next) => {
     next();
 };
 
+// Helper: tratar superadmin como admin para permisos generales
+const isAdminOrSuperAdmin = (req) => req.user?.role === 'admin' || req.user?.role === 'superadmin';
+
 // ==============================================
 // CONFIGURACIÓN DE EMAIL
 // ==============================================
@@ -1695,7 +1698,8 @@ app.get('/api/inventories', authenticateToken, async (req, res) => {
 
         let query, params;
 
-        if (req.user.role === 'admin') {
+        if (isAdminOrSuperAdmin(req)) {
+            const isSuperAdmin = req.user.role === 'superadmin';
             query = `
                 SELECT 
                     i.*, 
@@ -1712,11 +1716,11 @@ app.get('/api/inventories', authenticateToken, async (req, res) => {
                 FROM inventories i 
                 LEFT JOIN users u ON i.created_by = u.id 
                 LEFT JOIN inventory_products ip ON i.id = ip.inventory_id
-                WHERE i.company_id = ?
+                ${isSuperAdmin ? '' : 'WHERE i.company_id = ?'}
                 GROUP BY i.id, i.name, i.description, i.created_by, i.created_at, i.updated_at, u.full_name
                 ORDER BY i.created_at DESC
             `;
-            params = [req.user.company_id];
+            params = isSuperAdmin ? [] : [req.user.company_id];
         } else {
             query = `
                 SELECT 
@@ -1764,14 +1768,15 @@ app.get('/api/inventories/:id', authenticateToken, async (req, res) => {
 
         let query, params;
 
-        if (req.user.role === 'admin') {
+        if (isAdminOrSuperAdmin(req)) {
+            const isSuperAdmin = req.user.role === 'superadmin';
             query = `
                 SELECT i.*, u.full_name as created_by_name 
                 FROM inventories i 
                 LEFT JOIN users u ON i.created_by = u.id 
-                WHERE i.id = ? AND i.company_id = ?
+                WHERE i.id = ? ${isSuperAdmin ? '' : 'AND i.company_id = ?'}
             `;
-            params = [inventoryId, req.user.company_id];
+            params = isSuperAdmin ? [inventoryId] : [inventoryId, req.user.company_id];
         } else {
             query = `
                 SELECT i.*, u.full_name as created_by_name, ui.can_edit, ui.can_delete, ui.can_upload
@@ -1807,22 +1812,74 @@ app.post('/api/inventories', authenticateToken, async (req, res) => {
             return res.status(400).json({ error: 'El nombre del inventario es requerido' });
         }
 
-        const connection = await mysql.createConnection(dbConfig);
+        let connection;
+        try {
+            connection = await mysql.createConnection(dbConfig);
+            await connection.beginTransaction();
 
-        const [result] = await connection.execute(
-            'INSERT INTO inventories (name, description, company_id, created_by) VALUES (?, ?, ?, ?)',
-            [name.trim(), description, req.user.company_id, req.user.id]
-        );
+            // Superadmin puede no tener company_id (usuarios antiguos). En ese caso:
+            // - Si viene company_id en el body, se usa
+            // - Si no, se toma la primera empresa existente
+            let companyId = req.user.company_id;
+            if (req.user.role === 'superadmin' && !companyId) {
+                const requestedCompanyId = req.body?.company_id;
+                if (requestedCompanyId) {
+                    companyId = requestedCompanyId;
+                } else {
+                    const [companies] = await connection.execute(
+                        'SELECT id FROM companies ORDER BY id LIMIT 1'
+                    );
+                    if (companies.length > 0) {
+                        companyId = companies[0].id;
+                    }
+                }
+            }
 
-        connection.end();
+            if (!companyId) {
+                await connection.rollback();
+                connection.end();
+                return res.status(400).json({
+                    error: 'No se pudo determinar la empresa (company_id). Crea una empresa o asigna el usuario a una empresa.'
+                });
+            }
 
-        console.log(`Inventory created with ID: ${result.insertId}`);
+            const [result] = await connection.execute(
+                'INSERT INTO inventories (name, description, company_id, created_by) VALUES (?, ?, ?, ?)',
+                [name.trim(), description, companyId, req.user.id]
+            );
 
-        res.json({
-            success: true,
-            id: result.insertId,
-            message: 'Inventario creado exitosamente'
-        });
+            const inventoryId = result.insertId;
+
+            // Importante: los usuarios "user" solo ven inventarios asignados (user_inventories),
+            // así que auto-asignamos el inventario recién creado al creador con permisos completos.
+            await connection.execute(
+                `INSERT INTO user_inventories (user_id, inventory_id, can_edit, can_delete, can_upload)
+                 VALUES (?, ?, TRUE, TRUE, TRUE)
+                 ON DUPLICATE KEY UPDATE
+                 can_edit = VALUES(can_edit),
+                 can_delete = VALUES(can_delete),
+                 can_upload = VALUES(can_upload)`,
+                [req.user.id, inventoryId]
+            );
+
+            await connection.commit();
+            connection.end();
+
+            console.log(`Inventory created with ID: ${inventoryId}`);
+
+            res.json({
+                success: true,
+                id: inventoryId,
+                message: 'Inventario creado exitosamente'
+            });
+        } catch (error) {
+            if (connection) {
+                try { await connection.rollback(); } catch (_) {}
+                try { connection.end(); } catch (_) {}
+            }
+            console.error('Error creating inventory:', error);
+            res.status(500).json({ error: 'Error del servidor' });
+        }
     } catch (error) {
         console.error('Error creating inventory:', error);
         res.status(500).json({ error: 'Error del servidor' });
@@ -1843,9 +1900,14 @@ app.put('/api/inventories/:id', authenticateToken, async (req, res) => {
 
         let query, params;
 
-        if (req.user.role === 'admin') {
-            query = 'SELECT * FROM inventories WHERE id = ? AND company_id = ?';
-            params = [inventoryId, req.user.company_id];
+        if (isAdminOrSuperAdmin(req)) {
+            if (req.user.role === 'superadmin') {
+                query = 'SELECT * FROM inventories WHERE id = ?';
+                params = [inventoryId];
+            } else {
+                query = 'SELECT * FROM inventories WHERE id = ? AND company_id = ?';
+                params = [inventoryId, req.user.company_id];
+            }
         } else {
             query = `
                 SELECT i.* FROM user_inventories ui
@@ -1889,9 +1951,14 @@ app.delete('/api/inventories/:id', authenticateToken, async (req, res) => {
 
         let query, params;
 
-        if (req.user.role === 'admin') {
-            query = 'SELECT * FROM inventories WHERE id = ? AND company_id = ?';
-            params = [inventoryId, req.user.company_id];
+        if (isAdminOrSuperAdmin(req)) {
+            if (req.user.role === 'superadmin') {
+                query = 'SELECT * FROM inventories WHERE id = ?';
+                params = [inventoryId];
+            } else {
+                query = 'SELECT * FROM inventories WHERE id = ? AND company_id = ?';
+                params = [inventoryId, req.user.company_id];
+            }
         } else {
             query = `
                 SELECT i.* FROM user_inventories ui
@@ -1941,9 +2008,14 @@ app.post('/api/inventories/:id/upload', authenticateToken, upload.single('file')
 
         let query, params;
 
-        if (req.user.role === 'admin') {
-            query = 'SELECT * FROM inventories WHERE id = ? AND company_id = ?';
-            params = [inventoryId, req.user.company_id];
+        if (isAdminOrSuperAdmin(req)) {
+            if (req.user.role === 'superadmin') {
+                query = 'SELECT * FROM inventories WHERE id = ?';
+                params = [inventoryId];
+            } else {
+                query = 'SELECT * FROM inventories WHERE id = ? AND company_id = ?';
+                params = [inventoryId, req.user.company_id];
+            }
         } else {
             query = `
                 SELECT i.* FROM user_inventories ui
@@ -3767,9 +3839,14 @@ app.post('/api/inventories/:id/upload-with-mapping', authenticateToken, upload.s
 
         // Verificar permisos
         let query, params;
-        if (req.user.role === 'admin') {
-            query = 'SELECT * FROM inventories WHERE id = ? AND company_id = ?';
-            params = [inventoryId, req.user.company_id];
+        if (isAdminOrSuperAdmin(req)) {
+            if (req.user.role === 'superadmin') {
+                query = 'SELECT * FROM inventories WHERE id = ?';
+                params = [inventoryId];
+            } else {
+                query = 'SELECT * FROM inventories WHERE id = ? AND company_id = ?';
+                params = [inventoryId, req.user.company_id];
+            }
         } else {
             query = `
                 SELECT i.* FROM user_inventories ui

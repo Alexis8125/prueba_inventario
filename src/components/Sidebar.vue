@@ -166,13 +166,13 @@ const navigation = [
         name: 'Inventarios', 
         to: '/inventarios', 
         icon: InventoryIcon,
-        roles: ['admin', 'user', 'superadmin']
+        roles: ['admin', 'user']
       },
       { 
         name: 'Ventas',  // <-- NUEVO ITEM AQUÍ
         to: '/ventas', 
         icon: SalesIcon,  // <-- Usar el nuevo icono
-        roles: ['admin', 'superadmin', 'user']  // Quién puede verlo
+        roles: ['admin', 'user']  // Quién puede verlo
       },
       { 
         name: 'Conteos', 

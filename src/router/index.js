@@ -11,10 +11,19 @@ import SalesView from '@/views/SalesView.vue'
 
 
 
+function getDefaultRouteForUser() {
+  const token = localStorage.getItem('token')
+  if (!token) return '/login'
+
+  const user = JSON.parse(localStorage.getItem('user') || '{}')
+  if (user?.role === 'superadmin') return '/superadmin'
+  return '/inventarios'
+}
+
 const routes = [
   {
     path: '/',
-    redirect: '/inventarios' // O '/dashboard' si prefieres
+    redirect: () => getDefaultRouteForUser()
   },
   {
     path: '/login',
@@ -31,7 +40,7 @@ const routes = [
     path: '/inventarios',
     name: 'inventarios',
     component: InventoriesView,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, disallowSuperAdmin: true }
   },
   {
     path: '/inventario/:id/productos',
@@ -73,7 +82,7 @@ const routes = [
     path: '/ventas',
     name: 'ventas',
     component: SalesView,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true, disallowSuperAdmin: true }
   }
 ]
 
@@ -95,7 +104,13 @@ router.beforeEach((to, from, next) => {
 
   // Si ya está autenticado y trata de ir al login
   if (to.name === 'login' && token) {
-    next('/inventarios')
+    next(getDefaultRouteForUser())
+    return
+  }
+
+  // Bloquear rutas no permitidas para superadmin
+  if (to.meta.disallowSuperAdmin && user.role === 'superadmin') {
+    next('/superadmin')
     return
   }
 

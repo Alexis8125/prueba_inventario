@@ -62,7 +62,7 @@
                   placeholder="Buscar...">
               </div>
 
-              <button v-if="user?.role === 'admin'" @click="showCreateModal = true"
+              <button v-if="user?.role === 'admin' || user?.role === 'superadmin'" @click="showCreateModal = true"
                 class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded text-sm font-medium transition-colors flex items-center gap-2 justify-center sm:justify-start">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6">
@@ -86,7 +86,7 @@
               </button>
 
               <!-- Botón para gestión de usuarios (solo admin) -->
-              <button v-if="user?.role === 'admin'" @click="$router.push('/usuarios')"
+              <button v-if="user?.role === 'admin' || user?.role === 'superadmin'" @click="$router.push('/usuarios')"
                 class="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 py-1.5 px-2.5 rounded text-sm transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -149,7 +149,7 @@
                     </path>
                   </svg>
                 </button>
-                <button v-if="user?.role === 'admin' || data?.can_edit" @click="editInventory(data)"
+                <button v-if="user?.role === 'admin' || user?.role === 'superadmin' || data?.can_edit" @click="editInventory(data)"
                   class="text-yellow-600 hover:text-yellow-700 p-0.5 hover:bg-yellow-50 rounded transition-colors"
                   title="Editar">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -158,7 +158,7 @@
                     </path>
                   </svg>
                 </button>
-                <button v-if="user?.role === 'admin'" @click="deleteInventory(data)"
+                <button v-if="user?.role === 'admin' || user?.role === 'superadmin'" @click="deleteInventory(data)"
                   class="text-red-600 hover:text-red-700 p-0.5 hover:bg-red-50 rounded transition-colors"
                   title="Eliminar">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -180,7 +180,7 @@
                 </svg>
                 <h3 class="text-lg font-medium text-gray-900 mb-2">No hay inventarios</h3>
                 <p class="text-gray-500 mb-4">Crea tu primer inventario para comenzar</p>
-                <button v-if="user?.role === 'admin'" @click="showCreateModal = true"
+                <button v-if="user?.role === 'admin' || user?.role === 'superadmin'" @click="showCreateModal = true"
                   class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors duration-300">
                   Crear Primer Inventario
                 </button>
@@ -558,6 +558,8 @@ const columnMapping = ref({
   category: '',
   price: ''
 })
+const value = ref(null) // ← AÑADE ESTA LÍNEA
+
 
 
 
@@ -567,6 +569,7 @@ const { success, error, info } = useNotifications()
 
 const inventories = ref([])
 const user = ref(JSON.parse(localStorage.getItem('user') || '{}'))
+console.log('User loaded:', user.value)
 const selectedInventory = ref(null)
 const searchQuery = ref('')
 

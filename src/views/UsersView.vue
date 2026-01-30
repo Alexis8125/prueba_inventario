@@ -1,5 +1,7 @@
 <template>
   <div class="min-h-screen bg-gray-50">
+
+    <Sidebar :user="currentUser" />
     <!-- Header -->
     <header class="bg-white shadow-sm border-b border-gray-200">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -489,11 +491,14 @@
 </template>
 
 <script setup>
+
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useNotifications } from '@/composables/useNotifications'
 import { apiService } from '@/services/api'
 import AppTable from '@/components/atoms/AppTable.vue'
+import Sidebar from '@/components/Sidebar.vue'
+
 
 const router = useRouter()
 const { success, error, confirm } = useNotifications()
